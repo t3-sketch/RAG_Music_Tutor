@@ -1,0 +1,22 @@
+# 環境・秘密
+.env
+.venv/
+.python-version
+
+# データ（権利者の許諾前のため非公開）
+data/
+
+# モデルキャッシュ
+.cache/
+
+# Python
+__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
+# 退避・メモ・作業ファイル
+*.bak
+whole_project.txt
+弱点.txt

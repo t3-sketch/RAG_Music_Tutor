@@ -1,0 +1,510 @@
+rd/chord-mv6/cst-diminished-chordscales
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/cst-diminished-chordscales
+    saved: soundquest.jp_quest_chord_chord-mv6_cst-diminished-chordscales.json（2 entries）
+[56/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/cst-harmonic-minor-chordscales
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/cst-harmonic-minor-chordscales
+    saved: soundquest.jp_quest_chord_chord-mv6_cst-harmonic-minor-chordscales.json（1 entries）
+[57/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/cst-major-chordscales
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/cst-major-chordscales
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/cst-major-chordscales/2/
+    saved: soundquest.jp_quest_chord_chord-mv6_cst-major-chordscales.json（34 entries）
+[58/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/cst-melodic-minor-chordscales
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/cst-melodic-minor-chordscales
+    saved: soundquest.jp_quest_chord_chord-mv6_cst-melodic-minor-chordscales.json（15 entries）
+[59/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/cst-mode-change
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/cst-mode-change
+    saved: soundquest.jp_quest_chord_chord-mv6_cst-mode-change.json（16 entries）
+[60/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/cst-ordering-chordscales
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/cst-ordering-chordscales
+    saved: soundquest.jp_quest_chord_chord-mv6_cst-ordering-chordscales.json（3 entries）
+[61/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-chord-system
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-chord-system
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-chord-system.json（10 entries）
+[62/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-coltrane-changes
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-coltrane-changes
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-coltrane-changes.json（21 entries）
+[63/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-ii-v-application
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-ii-v-application
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-ii-v-application.json（9 entries）
+[64/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-modal-interchange
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-modal-interchange
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-modal-interchange/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-modal-interchange/3/
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-modal-interchange.json（108 entries）
+[65/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-side-stepping
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-side-stepping
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-side-stepping.json（38 entries）
+[66/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-tension-on-dominant-chords
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-tension-on-dominant-chords
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-tension-on-dominant-chords/2/
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-tension-on-dominant-chords.json（87 entries）
+[67/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-ticket-to-jazz
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-ticket-to-jazz
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-ticket-to-jazz.json（59 entries）
+[68/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-tritone-sub-2
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-tritone-sub-2
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-tritone-sub-2.json（42 entries）
+[69/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-tritone-substitution
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-tritone-substitution
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-tritone-substitution.json（71 entries）
+[70/191] scrape: https://soundquest.jp/quest/chord/chord-mv6/ttj-voicing-and-voice-leading
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-voicing-and-voice-leading
+    fetch: https://soundquest.jp/quest/chord/chord-mv6/ttj-voicing-and-voice-leading/2/
+    saved: soundquest.jp_quest_chord_chord-mv6_ttj-voicing-and-voice-leading.json（116 entries）
+[71/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/about-classic-theory
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/about-classic-theory
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/about-classic-theory/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/about-classic-theory/3/
+    saved: soundquest.jp_quest_chord_chord-mv7_about-classic-theory.json（39 entries）
+[72/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/augmented-sixth-chords/
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/augmented-sixth-chords/
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/augmented-sixth-chords/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/augmented-sixth-chords/3/
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/augmented-sixth-chords/4/
+    saved: soundquest.jp_quest_chord_chord-mv7_augmented-sixth-chords.json（188 entries）
+[73/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/classic-basic-modulation
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/classic-basic-modulation
+    saved: soundquest.jp_quest_chord_chord-mv7_classic-basic-modulation.json（9 entries）
+[74/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/classic-style-1
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/classic-style-1
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/classic-style-1/2/
+    saved: soundquest.jp_quest_chord_chord-mv7_classic-style-1.json（90 entries）
+[75/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/classic-style-2
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/classic-style-2
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/classic-style-2/2/
+    saved: soundquest.jp_quest_chord_chord-mv7_classic-style-2.json（4 entries）
+[76/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-1st-inversion
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-1st-inversion
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-1st-inversion/2/
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-1st-inversion.json（32 entries）
+[77/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-2nd-3rd-inversion
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-2nd-3rd-inversion
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-2nd-3rd-inversion.json（25 entries）
+[78/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-basic-prohibitions
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-basic-prohibitions
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-basic-prohibitions.json（19 entries）
+[79/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-conclusion
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-conclusion
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-conclusion.json（39 entries）
+[80/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-dominant7th
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-dominant7th
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-dominant7th.json（2 entries）
+[81/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-notations
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-notations
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-notations.json（1 entries）
+[82/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-positioning
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-positioning
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-positioning/2/
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-positioning.json（14 entries）
+[83/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-principles
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-principles
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-principles.json（56 entries）
+[84/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-prohibitions-consecutive
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-prohibitions-consecutive
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-prohibitions-consecutive/2/
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-prohibitions-consecutive.json（89 entries）
+[85/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/harmony-prohibitions-hidden-consecutive
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/harmony-prohibitions-hidden-consecutive
+    saved: soundquest.jp_quest_chord_chord-mv7_harmony-prohibitions-hidden-consecutive.json（33 entries）
+[86/191] scrape: https://soundquest.jp/quest/chord/chord-mv7/neapolitan-sixth/
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/neapolitan-sixth/
+    fetch: https://soundquest.jp/quest/chord/chord-mv7/neapolitan-sixth/2/
+    saved: soundquest.jp_quest_chord_chord-mv7_neapolitan-sixth.json（60 entries）
+[87/191] scrape: https://soundquest.jp/quest/chord/chord-mv8//respell-and-neglected-intervals/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8//respell-and-neglected-intervals/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/respell-and-neglected-intervals/2/
+    saved: soundquest.jp_quest_chord_chord-mv8__respell-and-neglected-intervals.json（64 entries）
+[88/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/axis-system
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/axis-system
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/axis-system/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/axis-system/3/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/axis-system/4/
+    saved: soundquest.jp_quest_chord_chord-mv8_axis-system.json（124 entries）
+[89/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/blackadder-chord
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/blackadder-chord
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/blackadder-chord/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/blackadder-chord/3/
+    saved: soundquest.jp_quest_chord_chord-mv8_blackadder-chord.json（197 entries）
+[90/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-1/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-1/3/
+    saved: soundquest.jp_quest_chord_chord-mv8_history-of-functional-harmony-1.json（279 entries）
+[91/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-2/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-2/3/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/history-of-functional-harmony-2/4/
+    saved: soundquest.jp_quest_chord_chord-mv8_history-of-functional-harmony-2.json（76 entries）
+[92/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/lydian-chromatic-concept
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/lydian-chromatic-concept
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/lydian-chromatic-concept/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/lydian-chromatic-concept/3/
+    saved: soundquest.jp_quest_chord_chord-mv8_lydian-chromatic-concept.json（111 entries）
+[93/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/meta-music-theory-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/meta-music-theory-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/meta-music-theory-1/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/meta-music-theory-1/3/
+    saved: soundquest.jp_quest_chord_chord-mv8_meta-music-theory-1.json（105 entries）
+[94/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/neapolitan-sixth-details/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/neapolitan-sixth-details/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/neapolitan-sixth-details/2/
+    saved: soundquest.jp_quest_chord_chord-mv8_neapolitan-sixth-details.json（38 entries）
+[95/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/neo-riemannian-theory-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/neo-riemannian-theory-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/neo-riemannian-theory-1/2/
+    saved: soundquest.jp_quest_chord_chord-mv8_neo-riemannian-theory-1.json（105 entries）
+[96/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/neo-riemannian-theory-2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/neo-riemannian-theory-2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/neo-riemannian-theory-2/2/
+    saved: soundquest.jp_quest_chord_chord-mv8_neo-riemannian-theory-2.json（134 entries）
+[97/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/nx-indefinite-tonality
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/nx-indefinite-tonality
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/nx-indefinite-tonality/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/nx-indefinite-tonality/3/
+    saved: soundquest.jp_quest_chord_chord-mv8_nx-indefinite-tonality.json（138 entries）
+[98/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/polysemy-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/polysemy-1/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/polysemy-1/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/polysemy-1/3/
+    saved: soundquest.jp_quest_chord_chord-mv8_polysemy-1.json（100 entries）
+[99/191] scrape: https://soundquest.jp/quest/chord/chord-mv8/polysemy-2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/polysemy-2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/polysemy-2/2/
+    fetch: https://soundquest.jp/quest/chord/chord-mv8/polysemy-2/3/
+    saved: soundquest.jp_quest_chord_chord-mv8_polysemy-2.json（156 entries）
+[100/191] scrape: https://soundquest.jp/quest/chord/nexus-system/control-factors
+    fetch: https://soundquest.jp/quest/chord/nexus-system/control-factors
+    saved: soundquest.jp_quest_chord_nexus-system_control-factors.json（48 entries）
+[101/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-2nd
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-2nd
+    saved: soundquest.jp_quest_chord_nexus-system_nx-2nd.json（46 entries）
+[102/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-3rd-down
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-3rd-down
+    saved: soundquest.jp_quest_chord_nexus-system_nx-3rd-down.json（39 entries）
+[103/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-3rd-up-1
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-3rd-up-1
+    fetch: https://soundquest.jp/quest/nexus-system/nx-3rd-up-1/2/
+    saved: soundquest.jp_quest_chord_nexus-system_nx-3rd-up-1.json（57 entries）
+[104/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-5th-down
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-5th-down
+    saved: soundquest.jp_quest_chord_nexus-system_nx-5th-down.json（22 entries）
+[105/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-5th-up
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-5th-up
+    saved: soundquest.jp_quest_chord_nexus-system_nx-5th-up.json（56 entries）
+[106/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-abstraction
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-abstraction
+    saved: soundquest.jp_quest_chord_nexus-system_nx-abstraction.json（55 entries）
+[107/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-classification
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-classification
+    fetch: https://soundquest.jp/quest/nexus-system/nx-classification/2/
+    saved: soundquest.jp_quest_chord_nexus-system_nx-classification.json（86 entries）
+[108/191] scrape: https://soundquest.jp/quest/chord/nexus-system/nx-royalroads
+    fetch: https://soundquest.jp/quest/chord/nexus-system/nx-royalroads
+    fetch: https://soundquest.jp/quest/nexus-system/nx-royalroads/2/
+    saved: soundquest.jp_quest_chord_nexus-system_nx-royalroads.json（107 entries）
+[109/191] scrape: https://soundquest.jp/quest/intro/about-routings
+    fetch: https://soundquest.jp/quest/intro/about-routings
+    saved: soundquest.jp_quest_intro_about-routings.json（37 entries）
+[110/191] scrape: https://soundquest.jp/quest/intro/darkside-of-music-theory
+    fetch: https://soundquest.jp/quest/intro/darkside-of-music-theory
+    saved: soundquest.jp_quest_intro_darkside-of-music-theory.json（51 entries）
+[111/191] scrape: https://soundquest.jp/quest/intro/guide
+    fetch: https://soundquest.jp/quest/intro/guide
+    saved: soundquest.jp_quest_intro_guide.json（35 entries）
+[112/191] scrape: https://soundquest.jp/quest/intro/history-of-music-theory
+    fetch: https://soundquest.jp/quest/intro/history-of-music-theory
+    fetch: https://soundquest.jp/quest/intro/history-of-music-theory/2/
+    fetch: https://soundquest.jp/quest/intro/history-of-music-theory/3/
+    fetch: https://soundquest.jp/quest/intro/history-of-music-theory/4/
+    saved: soundquest.jp_quest_intro_history-of-music-theory.json（155 entries）
+[113/191] scrape: https://soundquest.jp/quest/intro/lightside-of-music-theory
+    fetch: https://soundquest.jp/quest/intro/lightside-of-music-theory
+    saved: soundquest.jp_quest_intro_lightside-of-music-theory.json（59 entries）
+[114/191] scrape: https://soundquest.jp/quest/intro/make-a-decision
+    fetch: https://soundquest.jp/quest/intro/make-a-decision
+    saved: soundquest.jp_quest_intro_make-a-decision.json（38 entries）
+[115/191] scrape: https://soundquest.jp/quest/intro/what-is-music-theory
+    fetch: https://soundquest.jp/quest/intro/what-is-music-theory
+    saved: soundquest.jp_quest_intro_what-is-music-theory.json（57 entries）
+[116/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/47nuki
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/47nuki
+    saved: soundquest.jp_quest_melody_melody-mv1_47nuki.json（34 entries）
+[117/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/about-melody-theory/
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/about-melody-theory/
+    saved: soundquest.jp_quest_melody_melody-mv1_about-melody-theory.json（63 entries）
+[118/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/melody-timing
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/melody-timing
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/melody-timing/2/
+    saved: soundquest.jp_quest_melody_melody-mv1_melody-timing.json（57 entries）
+[119/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/motif-and-variations/
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/motif-and-variations/
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/motif-and-variations/2/
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/motif-and-variations/3/
+    saved: soundquest.jp_quest_melody_melody-mv1_motif-and-variations.json（130 entries）
+[120/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/range-segmentation
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/range-segmentation
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/range-segmentation/2/
+    saved: soundquest.jp_quest_melody_melody-mv1_range-segmentation.json（98 entries）
+[121/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/rap-pitch-settings
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/rap-pitch-settings
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/rap-pitch-settings/2/
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/rap-pitch-settings/3/
+    saved: soundquest.jp_quest_melody_melody-mv1_rap-pitch-settings.json（176 entries）
+[122/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/scale-degree-and-solfa
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/scale-degree-and-solfa
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/scale-degree-and-solfa/2/
+    saved: soundquest.jp_quest_melody_melody-mv1_scale-degree-and-solfa.json（74 entries）
+[123/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/step-or-skip
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/step-or-skip
+    saved: soundquest.jp_quest_melody_melody-mv1_step-or-skip.json（49 entries）
+[124/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/tendency
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/tendency
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/tendency/2/
+    saved: soundquest.jp_quest_melody_melody-mv1_tendency.json（67 entries）
+[125/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-converge-diverge
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-converge-diverge
+    saved: soundquest.jp_quest_melody_melody-mv1_tonal-gravitation-converge-diverge.json（49 entries）
+[126/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-kernel
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-kernel
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-kernel/2/
+    saved: soundquest.jp_quest_melody_melody-mv1_tonal-gravitation-kernel.json（88 entries）
+[127/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-tendency
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-tendency
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/tonal-gravitation-tendency/2/
+    saved: soundquest.jp_quest_melody_melody-mv1_tonal-gravitation-tendency.json（66 entries）
+[128/191] scrape: https://soundquest.jp/quest/melody/melody-mv1/various-scales
+    fetch: https://soundquest.jp/quest/melody/melody-mv1/various-scales
+    saved: soundquest.jp_quest_melody_melody-mv1_various-scales.json（42 entries）
+[129/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/3rd-shell
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/3rd-shell
+    saved: soundquest.jp_quest_melody_melody-mv2_3rd-shell.json（52 entries）
+[130/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/5th-shell
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/5th-shell
+    saved: soundquest.jp_quest_melody_melody-mv2_5th-shell.json（23 entries）
+[131/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/7th-shell
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/7th-shell
+    saved: soundquest.jp_quest_melody_melody-mv2_7th-shell.json（25 entries）
+[132/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/basic-harmony-making/
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/basic-harmony-making/
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/basic-harmony-making/2/
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/basic-harmony-making/3/
+    saved: soundquest.jp_quest_melody_melody-mv2_basic-harmony-making.json（145 entries）
+[133/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/horizontal-vertical
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/horizontal-vertical
+    saved: soundquest.jp_quest_melody_melody-mv2_horizontal-vertical.json（1 entries）
+[134/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/in-chord-degree
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/in-chord-degree
+    saved: soundquest.jp_quest_melody_melody-mv2_in-chord-degree.json（42 entries）
+[135/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/ks-analysis
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/ks-analysis
+    saved: soundquest.jp_quest_melody_melody-mv2_ks-analysis.json（21 entries）
+[136/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/root-shell
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/root-shell
+    saved: soundquest.jp_quest_melody_melody-mv2_root-shell.json（21 entries）
+[137/191] scrape: https://soundquest.jp/quest/melody/melody-mv2/tonal-gravitation-shell
+    fetch: https://soundquest.jp/quest/melody/melody-mv2/tonal-gravitation-shell
+    saved: soundquest.jp_quest_melody_melody-mv2_tonal-gravitation-shell.json（56 entries）
+[138/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/blue-note
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/blue-note
+    saved: soundquest.jp_quest_melody_melody-mv3_blue-note.json（54 entries）
+[139/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/chromatic-approach
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/chromatic-approach
+    saved: soundquest.jp_quest_melody_melody-mv3_chromatic-approach.json（76 entries）
+[140/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/church-modes
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/church-modes
+    saved: soundquest.jp_quest_melody_melody-mv3_church-modes.json（49 entries）
+[141/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/church-modes-review
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/church-modes-review
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/church-modes-review/2/
+    saved: soundquest.jp_quest_melody_melody-mv3_church-modes-review.json（114 entries）
+[142/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/dorian-scale
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/dorian-scale
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/dorian-scale/2/
+    saved: soundquest.jp_quest_melody_melody-mv3_dorian-scale.json（99 entries）
+[143/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/minor-scales
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/minor-scales
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/minor-scales/2/
+    saved: soundquest.jp_quest_melody_melody-mv3_minor-scales.json（100 entries）
+[144/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/minorscale-tendencies
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/minorscale-tendencies
+    saved: soundquest.jp_quest_melody_melody-mv3_minorscale-tendencies.json（73 entries）
+[145/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/mixolydian-scale
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/mixolydian-scale
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/mixolydian-scale/2/
+    saved: soundquest.jp_quest_melody_melody-mv3_mixolydian-scale.json（82 entries）
+[146/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/phrygian-scale
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/phrygian-scale
+    saved: soundquest.jp_quest_melody_melody-mv3_phrygian-scale.json（78 entries）
+[147/191] scrape: https://soundquest.jp/quest/melody/melody-mv3/wholetone-scale
+    fetch: https://soundquest.jp/quest/melody/melody-mv3/wholetone-scale
+    saved: soundquest.jp_quest_melody_melody-mv3_wholetone-scale.json（37 entries）
+[148/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/2nd-shell-usage/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/2nd-shell-usage/
+    saved: soundquest.jp_quest_melody_melody-mv4_2nd-shell-usage.json（56 entries）
+[149/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/4th-shell-usage/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/4th-shell-usage/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/4th-shell-usage/2/
+    saved: soundquest.jp_quest_melody_melody-mv4_4th-shell-usage.json（74 entries）
+[150/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/6th-shell-usage
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/6th-shell-usage
+    saved: soundquest.jp_quest_melody_melody-mv4_6th-shell-usage.json（60 entries）
+[151/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/altered-shell-and-parallel-minor/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/altered-shell-and-parallel-minor/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/altered-shell-and-parallel-minor/2/
+    saved: soundquest.jp_quest_melody_melody-mv4_altered-shell-and-parallel-minor.json（69 entries）
+[152/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/cancel-alteration/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/cancel-alteration/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/cancel-alteration/2/
+    saved: soundquest.jp_quest_melody_melody-mv4_cancel-alteration.json（102 entries）
+[153/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/even-shell-resolution/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/even-shell-resolution/
+    saved: soundquest.jp_quest_melody_melody-mv4_even-shell-resolution.json（69 entries）
+[154/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/prescribe-scales/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/prescribe-scales/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/prescribe-scales/2/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/prescribe-scales/3/
+    saved: soundquest.jp_quest_melody_melody-mv4_prescribe-scales.json（115 entries）
+[155/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/shell-natural-altered/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/shell-natural-altered/
+    saved: soundquest.jp_quest_melody_melody-mv4_shell-natural-altered.json（42 entries）
+[156/191] scrape: https://soundquest.jp/quest/melody/melody-mv4/slashed-chord-and-shell/
+    fetch: https://soundquest.jp/quest/melody/melody-mv4/slashed-chord-and-shell/
+    saved: soundquest.jp_quest_melody_melody-mv4_slashed-chord-and-shell.json（31 entries）
+[157/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/harmonize-a-tone/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/harmonize-a-tone/
+    saved: soundquest.jp_quest_melody_melody-mv5_harmonize-a-tone.json（78 entries）
+[158/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-1/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-1/
+    saved: soundquest.jp_quest_melody_melody-mv5_harmonize-melodies-1.json（63 entries）
+[159/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-2
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-2
+    saved: soundquest.jp_quest_melody_melody-mv5_harmonize-melodies-2.json（60 entries）
+[160/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-3/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-3/
+    saved: soundquest.jp_quest_melody_melody-mv5_harmonize-melodies-3.json（73 entries）
+[161/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-4
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/harmonize-melodies-4
+    saved: soundquest.jp_quest_melody_melody-mv5_harmonize-melodies-4.json（50 entries）
+[162/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/order-in-composition/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/order-in-composition/
+    saved: soundquest.jp_quest_melody_melody-mv5_order-in-composition.json（51 entries）
+[163/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/shell-parity-and-nexus/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/shell-parity-and-nexus/
+    saved: soundquest.jp_quest_melody_melody-mv5_shell-parity-and-nexus.json（59 entries）
+[164/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/shelling-and-reshelling/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/shelling-and-reshelling/
+    saved: soundquest.jp_quest_melody_melody-mv5_shelling-and-reshelling.json（39 entries）
+[165/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/tendency-of-shells/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/tendency-of-shells/
+    saved: soundquest.jp_quest_melody_melody-mv5_tendency-of-shells.json（62 entries）
+[166/191] scrape: https://soundquest.jp/quest/melody/melody-mv5/watch-cop/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/watch-cop/
+    fetch: https://soundquest.jp/quest/melody/melody-mv5/watch-cop/2/
+    saved: soundquest.jp_quest_melody_melody-mv5_watch-cop.json（102 entries）
+[167/191] scrape: https://soundquest.jp/quest/nexus-system/nx-f-nexus/
+    fetch: https://soundquest.jp/quest/nexus-system/nx-f-nexus/
+    fetch: https://soundquest.jp/quest/nexus-system/nx-f-nexus/2/
+    fetch: https://soundquest.jp/quest/nexus-system/nx-f-nexus/3/
+    saved: soundquest.jp_quest_nexus-system_nx-f-nexus.json（89 entries）
+[168/191] scrape: https://soundquest.jp/quest/prerequisite/about-prerequisite
+    fetch: https://soundquest.jp/quest/prerequisite/about-prerequisite
+    saved: soundquest.jp_quest_prerequisite_about-prerequisite.json（45 entries）
+[169/191] scrape: https://soundquest.jp/quest/prerequisite/co5th
+    fetch: https://soundquest.jp/quest/prerequisite/co5th
+    saved: soundquest.jp_quest_prerequisite_co5th.json（38 entries）
+[170/191] scrape: https://soundquest.jp/quest/prerequisite/envelope
+    fetch: https://soundquest.jp/quest/prerequisite/envelope
+    fetch: https://soundquest.jp/quest/prerequisite/envelope/2/
+    saved: soundquest.jp_quest_prerequisite_envelope.json（96 entries）
+[171/191] scrape: https://soundquest.jp/quest/prerequisite/interval-1
+    fetch: https://soundquest.jp/quest/prerequisite/interval-1
+    saved: soundquest.jp_quest_prerequisite_interval-1.json（64 entries）
+[172/191] scrape: https://soundquest.jp/quest/prerequisite/key
+    fetch: https://soundquest.jp/quest/prerequisite/key
+    saved: soundquest.jp_quest_prerequisite_key.json（66 entries）
+[173/191] scrape: https://soundquest.jp/quest/prerequisite/names
+    fetch: https://soundquest.jp/quest/prerequisite/names
+    saved: soundquest.jp_quest_prerequisite_names.json（38 entries）
+[174/191] scrape: https://soundquest.jp/quest/prerequisite/scale-1
+    fetch: https://soundquest.jp/quest/prerequisite/scale-1
+    saved: soundquest.jp_quest_prerequisite_scale-1.json（47 entries）
+[175/191] scrape: https://soundquest.jp/quest/prerequisite/scale-2
+    fetch: https://soundquest.jp/quest/prerequisite/scale-2
+    saved: soundquest.jp_quest_prerequisite_scale-2.json（34 entries）
+[176/191] scrape: https://soundquest.jp/quest/prerequisite/scale-3
+    fetch: https://soundquest.jp/quest/prerequisite/scale-3
+    saved: soundquest.jp_quest_prerequisite_scale-3.json（45 entries）
+[177/191] scrape: https://soundquest.jp/quest/prerequisite/spectrum
+    fetch: https://soundquest.jp/quest/prerequisite/spectrum
+    fetch: https://soundquest.jp/quest/prerequisite/spectrum/2/
+    saved: soundquest.jp_quest_prerequisite_spectrum.json（97 entries）
+[178/191] scrape: https://soundquest.jp/quest/prerequisite/tonality
+    fetch: https://soundquest.jp/quest/prerequisite/tonality
+    fetch: https://soundquest.jp/quest/prerequisite/tonality/2/
+    saved: soundquest.jp_quest_prerequisite_tonality.json（96 entries）
+[179/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/8beat-and-16beat
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/8beat-and-16beat
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/8beat-and-16beat/2/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_8beat-and-16beat.json（88 entries）
+[180/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/about-rhythm-theory
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/about-rhythm-theory
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/about-rhythm-theory/2/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_about-rhythm-theory.json（78 entries）
+[181/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/clave
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/clave
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/clave/2/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_clave.json（98 entries）
+[182/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/downbeat-upbeat
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/downbeat-upbeat
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/downbeat-upbeat/2/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_downbeat-upbeat.json（63 entries）
+[183/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/strong-beat-weak-beat
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/strong-beat-weak-beat
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_strong-beat-weak-beat.json（47 entries）
+[184/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/syncopation
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/syncopation
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/syncopation/2/
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/syncopation/3/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_syncopation.json（111 entries）
+[185/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/time-and-bar
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/time-and-bar
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/time-and-bar/2/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_time-and-bar.json（91 entries）
+[186/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv1/timefeel
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv1/timefeel
+    saved: soundquest.jp_quest_rhythm_rhythm-mv1_timefeel.json（50 entries）
+[187/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv2/2times-6times
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv2/2times-6times
+    saved: soundquest.jp_quest_rhythm_rhythm-mv2_2times-6times.json（26 entries）
+[188/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv2/irregular-times
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv2/irregular-times
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv2/irregular-times/2/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv2_irregular-times.json（72 entries）
+[189/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv2/polyrhythm
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv2/polyrhythm
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv2/polyrhythm/2/
+    saved: soundquest.jp_quest_rhythm_rhythm-mv2_polyrhythm.json（92 entries）
+[190/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv2/shuffle-beat
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv2/shuffle-beat
+    saved: soundquest.jp_quest_rhythm_rhythm-mv2_shuffle-beat.json（36 entries）
+[191/191] scrape: https://soundquest.jp/quest/rhythm/rhythm-mv2/times-detail
+    fetch: https://soundquest.jp/quest/rhythm/rhythm-mv2/times-detail
+    saved: soundquest.jp_quest_rhythm_rhythm-mv2_times-detail.json（35 entries）
+
+========== 完了 ==========
+  保存: 188
+  スキップ（保存済み）: 3
+  失敗: 0
+  保存先: /Users/macuser/dev/RAG_Music_Theory/data/raw
+(base) macuser@MacUsernoMacBook-Air-2 RAG_Music_Theory % # 例：1 entry しかないファイルを覗いて みる
+head -n 20 /Users/macuser/dev/RAG_Music_Theory/data/raw/soundquest.jp_quest_chord_chord-mv7_harmony-notations.json
+zsh: command not found: #
+[
+  {
+    "text": "さて、長きに渡った古典様式の話もそろそろ終わりに近づいてきています！すでに古典の基本コード様式を身につけ、「配置」と「役割分担」、そして「美しい連結」についても学んできました。これらの知識だけでも、相当本格的なものです。次に解説するのが、「転回形」の用法です。",
+    "type": "text",
+    "source_url": "https://soundquest.jp/quest/chord/chord-mv7/harmony-notations"
+  }
+]%                                              
+(base) macuser@MacUsernoMacBook-Air-2 RAG_Music_Theory % 
