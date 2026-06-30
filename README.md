@@ -47,6 +47,11 @@
 
 ## アーキテクチャ
 
+ユーザーが直接利用する UI は Streamlit（`app.py`）です。FastAPI + Inngest は、取り込みパイプライン（`rag_ingest`）が
+バックグラウンドジョブとして正しく動作するかを検証するための実験用構成として用意しています。Inngest のジョブは
+HTTP 経由で公開する必要があり、Inngest の Python SDK が公式に提供する FastAPI 用アダプタ（`inngest.fast_api.serve`）を
+利用する形で、`main.py` に最小限の FastAPI アプリを立てています。
+
 取り込み（ingest）と検索・生成（query）で実行モデルを分けています。
 
 - **ingest は Inngest の非同期ジョブ**: 162 記事の埋め込みは BGE-M3（約2GB）を伴う重い処理で、
@@ -149,7 +154,8 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 
 ## 技術スタック
 
-- **API / オーケストレーション**: FastAPI + Inngest + Streamlit
+- **UI**: Streamlit
+- **取り込みパイプラインの動作検証用**: FastAPI + Inngest
 - **ベクトルDB**: Qdrant（Docker, cosine, 1024 次元）
 - **埋め込み**: BGE-M3 via FlagEmbedding（dense。将来 sparse/hybrid に拡張可能）
 - **生成**: Gemini API
