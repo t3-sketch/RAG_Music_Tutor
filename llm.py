@@ -1,6 +1,8 @@
 """Gemini API を呼び出して音楽理論解説を生成するモジュール。"""
 from google import genai
 from google.genai import types
+from google.genai import errors as genai_errors
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 import config
 
@@ -18,6 +20,24 @@ SYSTEM_PROMPT = """あなたは音楽理論と楽曲分析の専門家です。
 """
 
 
+@retry(
+    retry=retry_if_exception_type(genai_errors.ServerError),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=2, min=10, max=60),
+    reraise=True,
+)
+def _generate_content(client: genai.Client, context: str, contents: str) -> str:
+    """Gemini呼び出し本体。503等の一時的なサーバーエラーは指数バックオフでリトライする。"""
+    resp = client.models.generate_content(
+        model=config.GEMINI_MODEL,
+        contents=contents,
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT.format(context=context),
+        ),
+    )
+    return resp.text
+
+
 def explain(query: str, chunks: list[dict], audio_desc: str | None = None) -> str:
     client = genai.Client(api_key=config.GEMINI_API_KEY)
 
@@ -30,11 +50,4 @@ def explain(query: str, chunks: list[dict], audio_desc: str | None = None) -> st
         parts.append(f"# 解析した楽曲の音響特徴\n{audio_desc}")
     parts.append(f"# 質問\n{query}")
 
-    resp = client.models.generate_content(
-        model=config.GEMINI_MODEL,
-        contents="\n\n".join(parts),
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT.format(context=context),
-        ),
-    )
-    return resp.text
+    return _generate_content(client, context, "\n\n".join(parts))

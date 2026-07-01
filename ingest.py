@@ -211,6 +211,90 @@ def _clean_text(text: str) -> str:
 #    entries を1本のテキストに結合してから分割する、従来の挙動を踏襲。
 # ══════════════════════════════════════════════════════════════
 
+def _looks_like_heading(text: str, entry_type: str = "text") -> bool:
+    """見出しらしさのheuristic判定。DOMタグ情報が失われているための代替手段。"""
+    if entry_type != "text":
+        return False
+    if re.match(r"^\d+\.\s", text):
+        return True
+    if len(text) < 30 and not text.endswith("。"):
+        return True
+    return False
+
+
+def chunk_structure(entries: list[dict], source_id: str) -> list[dict]:
+    """
+    見出しheuristicでセクション分割し、長すぎれば再分割・短すぎればmergeする。
+    chunk()と同じ入出力シグネチャ:
+      返り値の各チャンク: {"text": str, "source": str, "chunk_index": int}
+    追加で "heading"（breadcrumb文字列）をpayload用に含める。
+    """
+    sections: list[dict] = []
+    current = {"heading": "", "texts": []}
+
+    for e in entries:
+        text = e.get("text", "")
+        entry_type = e.get("type", "text")
+        if not text:
+            continue
+        if _looks_like_heading(text, entry_type):
+            if current["texts"] or current["heading"]:
+                sections.append(current)
+            current = {"heading": text, "texts": []}
+        else:
+            current["texts"].append(text)
+
+    if current["texts"] or current["heading"]:
+        sections.append(current)
+
+    merged_sections: list[dict] = []
+    pending_headings: list[str] = []
+    pending_texts: list[str] = []
+
+    for sec in sections:
+        body = "\n\n".join(pending_texts + sec["texts"])
+        headings = pending_headings + ([sec["heading"]] if sec["heading"] else [])
+
+        if len(body) < config.MIN_SECTION_CHARS:
+            pending_headings = headings
+            pending_texts = pending_texts + sec["texts"]
+            continue
+
+        merged_sections.append({"breadcrumb": " > ".join(headings), "text": body})
+        pending_headings = []
+        pending_texts = []
+
+    if pending_texts or pending_headings:
+        if merged_sections:
+            last = merged_sections[-1]
+            if pending_headings:
+                last["breadcrumb"] = last["breadcrumb"] + " > " + " > ".join(pending_headings)
+            last["text"] = last["text"] + "\n\n" + "\n\n".join(pending_texts)
+        else:
+            merged_sections.append({
+                "breadcrumb": " > ".join(pending_headings),
+                "text": "\n\n".join(pending_texts),
+            })
+
+    chunks: list[dict] = []
+    chunk_index = 0
+
+    for sec in merged_sections:
+        pieces = _chunk_text(sec["text"]) if len(sec["text"]) > config.CHUNK_CHARS else [sec["text"]]
+        for piece in pieces:
+            breadcrumb = sec["breadcrumb"]
+            prefixed = f"[{breadcrumb}]\n{piece}" if breadcrumb else piece
+            chunks.append({
+                "text": prefixed,
+                "source": source_id,
+                "chunk_index": chunk_index,
+                "heading": breadcrumb,
+            })
+            chunk_index += 1
+
+    return chunks
+
+
 def chunk(entries: list[dict], source_id: str) -> list[dict]:
     """
     entries を結合 → 固定窓で分割し、メタ付きチャンクのリストを返す。

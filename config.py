@@ -10,7 +10,7 @@ COLLECTION_NAME = "music_theory"
 # 評価実験用の collection（chunking戦略ごと）。
 # 本番の QDRANT_COLLECTION とは別物。evaluation.py が戦略比較に使う。
 COLLECTIONS = {
-    "fixed": "music_theory_fixed",
+    "fixed": "music_theory",
     "structure": "music_theory_structure",
 }
 
@@ -25,7 +25,7 @@ DISTANCE = "cosine"
 
 # --- モデル ---
 EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-m3")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 # --- Songle API ---
@@ -37,6 +37,7 @@ SONGLE_API_BASE = "https://widget.songle.jp/api/v1"
 # --- チャンク分割（文字数ベース。日本語教材を想定）---
 CHUNK_CHARS = 800
 CHUNK_OVERLAP = 120
+MIN_SECTION_CHARS = 100
 
 # --- 検索・生成 ---
 TOP_K = 5
