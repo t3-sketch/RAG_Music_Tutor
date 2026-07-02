@@ -211,3 +211,12 @@ uv run python evaluation.py            # hit-rate@k / MRR
 - **生成品質の評価**: RAGAS による 5 指標評価（節目のみ）を実施します。
 - **音声入力の拡張**: ユーザーがアップロードした音源を Librosa で解析し、解説に結びつけます。
 - **デプロイ**: 権利者の許諾確認後に行います。
+
+---
+
+## Credits / Third-Party
+
+- [model/](model/) 配下のコード認識機能は [BTC-ISMIR19](https://github.com/jayg996/BTC-ISMIR19)
+  （Jonggwon Park, "A Bi-Directional Transformer for Musical Chord Recognition", ISMIR 2019）
+  の一部をvendoringしています（MIT License, Copyright (c) 2019 Jonggwon Park）。
+  ライセンス全文は [model/LICENSE_BTC-ISMIR19](model/LICENSE_BTC-ISMIR19) を参照してください。

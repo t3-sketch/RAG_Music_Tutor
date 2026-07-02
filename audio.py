@@ -1,197 +1,235 @@
-"""音響解析モジュール。
+"""audio.py
 
-2系統の入力をサポートする:
-  1. ローカル音声ファイル（mp3/wav/flac）  -> Librosa で特徴抽出
-  2. web上の楽曲URL（YouTube/ニコニコ等）  -> Songle API で解析結果を取得
+Phase 2 MVP: 音声ファイル単体の解析関数群。
+chroma特徴量をdetect_key/detect_chordsで共有する処理軸分割（案B, 2026-07-01決定）。
 
-どちらも最終的に「Claude に渡す日本語テキスト」へ変換する。
+スコープ外（将来課題）:
+  - メロディ/F0解析
+  - segment分割（Aメロ/Bメロ/サビ）
+  - テンションコード（9th/11th/13th）
+  - 音源分離
 """
+
 from __future__ import annotations
 
 import numpy as np
-import requests
+import librosa
 
-import config
+# ---------------------------------------------------------------------------
+# コードテンプレート（MajMin + 7th語彙）
+# ---------------------------------------------------------------------------
 
-# --- 音名・調推定用プロファイル（Krumhansl-Schmuckler）---
-PITCHES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-_KS_MAJOR = np.array(
-    [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88]
-)
-_KS_MINOR = np.array(
-    [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
-)
+_PITCH_CLASSES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
-
-# =========================================================
-#  1. ローカルファイル: Librosa
-# =========================================================
-def extract_local(path: str) -> dict:
-    """ローカル音声ファイルから音響特徴を抽出する。"""
-    import librosa  # 重いので関数内 import
-
-    y, sr = librosa.load(path, sr=22050, mono=True)
-
-    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-    tempo = float(np.atleast_1d(tempo)[0])
-
-    chroma = librosa.feature.chroma_cens(y=y, sr=sr).mean(axis=1)
-    key = _estimate_key(chroma)
-
-    centroid = float(librosa.feature.spectral_centroid(y=y, sr=sr).mean())
-    rms = float(librosa.feature.rms(y=y).mean())
-    zcr = float(librosa.feature.zero_crossing_rate(y).mean())
-
-    return {
-        "bpm": round(tempo, 1),
-        "key": key,
-        "brightness_hz": round(centroid, 0),
-        "energy_rms": round(rms, 4),
-        "zcr": round(zcr, 4),
-        "duration_sec": round(len(y) / sr, 1),
-    }
+_CHORD_INTERVALS = {
+    "maj": [0, 4, 7],
+    "min": [0, 3, 7],
+    "7": [0, 4, 7, 10],      # dominant 7th
+    "maj7": [0, 4, 7, 11],
+    "min7": [0, 3, 7, 10],
+}
 
 
-def _estimate_key(chroma_mean: np.ndarray) -> str:
-    """12次元クロマから最も相関の高い調（major/minor）を返す。"""
-    best_name, best_score = "不明", -2.0
-    for i in range(12):
-        for profile, mode in ((_KS_MAJOR, "major"), (_KS_MINOR, "minor")):
-            rolled = np.roll(profile, i)
-            score = float(np.corrcoef(rolled, chroma_mean)[0, 1])
+def _build_chord_templates() -> dict[str, np.ndarray]:
+    """root x quality の全組み合わせで単位ベクトル化されたバイナリchromaテンプレートを作る。"""
+    templates: dict[str, np.ndarray] = {}
+    for quality, intervals in _CHORD_INTERVALS.items():
+        for root_idx, root_name in enumerate(_PITCH_CLASSES):
+            vec = np.zeros(12)
+            for interval in intervals:
+                vec[(root_idx + interval) % 12] = 1.0
+            vec = vec / np.linalg.norm(vec)  # コード種によってノート数が違うため正規化
+            templates[f"{root_name} {quality}"] = vec
+    return templates
+
+
+_CHORD_TEMPLATES = _build_chord_templates()
+
+# Krumhansl-Schmuckler key profile
+_MAJOR_PROFILE = np.array([6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88])
+_MINOR_PROFILE = np.array([6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17])
+
+
+def _load_and_chroma(path: str, hop_length: int = 2048) -> tuple[np.ndarray, int]:
+    """音声を読み込み、chroma特徴量を計算する。
+
+    Returns:
+        chroma: shape (12, n_frames)
+        sr: サンプルレート（時刻変換に使うため呼び出し側に返す）
+    """
+    y, sr = librosa.load(path, sr=None, mono=True)
+    chroma = librosa.feature.chroma_cqt(y=y, sr=sr, hop_length=hop_length)
+    return chroma, sr
+
+
+def detect_tempo_beats(path: str) -> dict:
+    """テンポ（BPM）とビート位置（秒）を検出する。
+
+    Returns:
+        {"tempo": float, "beats": [float, ...]}
+    """
+    y, sr = librosa.load(path, sr=None, mono=True)
+    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr, units="frames")
+    tempo = float(np.atleast_1d(tempo)[0])  # librosa 0.10+ は配列を返すため先頭要素を取る
+    beat_times = librosa.frames_to_time(beat_frames, sr=sr).tolist()
+    return {"tempo": float(tempo), "beats": beat_times}
+
+
+def detect_key(chroma: np.ndarray) -> str:
+    """Krumhansl-Schmuckler相関でグローバルキーを推定する。
+
+    Args:
+        chroma: shape (12, n_frames), _load_and_chroma()の出力。
+
+    Returns:
+        例: "C maj", "A min"
+    """
+    mean_chroma = chroma.mean(axis=1)
+
+    best_score = -np.inf
+    best_key = "C maj"
+    for root_idx, root_name in enumerate(_PITCH_CLASSES):
+        for profile, quality in [(_MAJOR_PROFILE, "maj"), (_MINOR_PROFILE, "min")]:
+            rotated = np.roll(profile, root_idx)
+            score = np.corrcoef(mean_chroma, rotated)[0, 1]
             if score > best_score:
                 best_score = score
-                best_name = f"{PITCHES[i]} {mode}"
-    return best_name
+                best_key = f"{root_name} {quality}"
+    return best_key
 
 
-def describe_local(f: dict) -> str:
-    """Librosa の特徴を日本語の説明テキストにする。"""
-    brightness = "明るい" if f["brightness_hz"] > 2500 else "落ち着いた"
-    energy = "強い" if f["energy_rms"] > 0.05 else "穏やか"
-    return (
-        f"- 解析方法: Librosa（ローカル音源の信号解析）\n"
-        f"- 推定BPM: {f['bpm']}\n"
-        f"- 推定キー: {f['key']}\n"
-        f"- 長さ: {f['duration_sec']} 秒\n"
-        f"- 音色の明るさ: {brightness}（スペクトル重心 {f['brightness_hz']:.0f} Hz）\n"
-        f"- エネルギー感: {energy}（RMS {f['energy_rms']}）\n"
-        f"- ノイズ/打楽器成分の目安: ZCR {f['zcr']}\n"
-        f"※ キーとBPMは信号からの統計的推定であり、誤差を含む。"
-    )
+def _btc_label_to_common(label: str) -> str:
+    """BTCの生ラベル（例: "C", "C#:min", "C:7", "N", "X"）を既存の"root quality"形式に変換する。"""
+    if label in ("N", "X"):
+        return "N"
+    if ":" in label:
+        root, quality = label.split(":", 1)
+        return f"{root} {quality}"
+    return f"{label} maj"
 
 
-# =========================================================
-#  2. web上の楽曲URL: Songle API（産総研）
-# =========================================================
-def fetch_songle(url: str) -> dict:
+def detect_chords(
+    path: str,
+    chroma: np.ndarray | None = None,
+    sr: int | None = None,
+    hop_length: int = 2048,
+    frame_duration: float = 1.0,
+    device: str = "cpu",
+) -> list[dict]:
+    """BTC-ISMIR19モデル（Bi-directional Transformer for Chord recognition）でコード進行を推定する。
+
+    モデルのロード・推論に失敗した場合（torch未インストール、重みファイル欠損等）は
+    _detect_chords_template（テンプレートマッチング）にフォールバックする。
+
+    Args:
+        path: 音声ファイルパス。
+        chroma, sr: フォールバック時に使うchroma特徴量。省略時はpathから再計算する。
+        hop_length, frame_duration: フォールバック（テンプレートマッチング）用パラメータ。
+        device: BTCモデルの実行デバイス。Apple Siliconでは推論時間の大半がCQT特徴量抽出
+            （librosa, CPU処理）に占められモデル計算自体は高速なため、"cpu"固定で問題ない
+            （2026-07-01 実機検証）。
+
+    Returns:
+        [{"start": float, "end": float, "chord": str}, ...]
+        同一コードが連続する区間はマージ済み。
     """
-    Songle から楽曲解析結果（基本情報・コード・ビート・サビ構造）を取得する。
-    対象URLが Songle 側で事前解析済みである必要がある。
-    未解析の場合は songle.jp 上で解析申請しておくこと。
+    try:
+        from model.btc_infer import recognize_chords_btc
+
+        raw_chords = recognize_chords_btc(path, device=device)
+        converted = [
+            (c["start"], c["end"], _btc_label_to_common(c["chord"]))
+            for c in raw_chords
+        ]
+        return _merge_adjacent_chords(converted)
+    except (ImportError, OSError, RuntimeError):
+        if chroma is None or sr is None:
+            chroma, sr = _load_and_chroma(path, hop_length=hop_length)
+        return _detect_chords_template(chroma, sr, hop_length=hop_length, frame_duration=frame_duration)
+
+
+def _detect_chords_template(
+    chroma: np.ndarray,
+    sr: int,
+    hop_length: int = 2048,
+    frame_duration: float = 1.0,
+) -> list[dict]:
+    """固定長ウィンドウのテンプレートマッチングでコード進行を推定する（detect_chordsのフォールバック実装）。
+
+    Args:
+        chroma: shape (12, n_frames), _load_and_chroma()の出力。
+        sr: サンプルレート。
+        hop_length: chroma計算時のhop_length（時刻変換に必要）。
+        frame_duration: コード推定の窓幅（秒）。窓内のchromaフレームを平均してから判定。
+
+    Returns:
+        [{"start": float, "end": float, "chord": str}, ...]
+        同一コードが連続する区間はマージ済み。
     """
-    params = {"url": url}
-    headers = {}
-    if config.SONGLE_API_TOKEN:
-        # 認証方式はダッシュボードで要確認（ヘッダ or クエリ）。
-        headers["X-Songle-Api-Token"] = config.SONGLE_API_TOKEN
+    frame_times = librosa.frames_to_time(np.arange(chroma.shape[1]), sr=sr, hop_length=hop_length)
+    total_duration = frame_times[-1] if len(frame_times) else 0.0
 
-    def _get(endpoint: str):
-        r = requests.get(
-            f"{config.SONGLE_API_BASE}/{endpoint}",
-            params=params,
-            headers=headers,
-            timeout=20,
-        )
-        r.raise_for_status()
-        return r.json()
+    raw_chords: list[tuple[float, float, str]] = []
+    t = 0.0
+    while t < total_duration:
+        t_end = min(t + frame_duration, total_duration)
+        mask = (frame_times >= t) & (frame_times < t_end)
+        if mask.any():
+            window_chroma = chroma[:, mask].mean(axis=1)
+            chord = _match_chord_template(window_chroma)
+            raw_chords.append((t, t_end, chord))
+        t = t_end
 
-    song = _get("song")
-    chords = _list(_get("song/chord"), "chords")
-    beats = _list(_get("song/beat"), "beats")
-    chorus = _list(_get("song/chorus"), "chorusSegments")
+    return _merge_adjacent_chords(raw_chords)
+
+
+def _match_chord_template(chroma_vec: np.ndarray) -> str:
+    norm = np.linalg.norm(chroma_vec)
+    if norm == 0:
+        return "N"  # 無音・エネルギーなし
+    normalized = chroma_vec / norm
+
+    best_score = -np.inf
+    best_chord = "N"
+    for name, template in _CHORD_TEMPLATES.items():
+        score = np.dot(normalized, template)  # cosine similarity
+        if score > best_score:
+            best_score = score
+            best_chord = name
+    return best_chord
+
+
+def _merge_adjacent_chords(raw_chords: list[tuple[float, float, str]]) -> list[dict]:
+    if not raw_chords:
+        return []
+    merged = [{"start": raw_chords[0][0], "end": raw_chords[0][1], "chord": raw_chords[0][2]}]
+    for start, end, chord in raw_chords[1:]:
+        if chord == merged[-1]["chord"]:
+            merged[-1]["end"] = end
+        else:
+            merged.append({"start": start, "end": end, "chord": chord})
+    return merged
+
+
+def analyze(path: str) -> dict:
+    """Phase 2 MVPの全解析をまとめて実行する接着関数。
+
+    Returns:
+        {
+            "tempo": float,
+            "beats": [float, ...],
+            "key": str,              # 例: "C maj"
+            "chords": [{"start": float, "end": float, "chord": str}, ...],
+        }
+    """
+    chroma, sr = _load_and_chroma(path)
+    tempo_beats = detect_tempo_beats(path)  # 下の注記参照: 音声を2回ロードしている
+    key = detect_key(chroma)
+    chords = detect_chords(path, chroma=chroma, sr=sr)
 
     return {
-        "title": _dig(song, "title") or "（不明）",
-        "artist": _dig(song, "artist", "name") or "（不明）",
-        "duration_sec": round((_dig(song, "duration") or 0) / 1000, 1),
-        "bpm": _bpm_from_beats(beats),
-        "chord_progression": _chord_progression(chords),
-        "unique_chords": _unique_chords(chords),
-        "n_chorus": len(chorus),
+        "tempo": tempo_beats["tempo"],
+        "beats": tempo_beats["beats"],
+        "key": key,
+        "chords": chords,
     }
-
-
-def _list(data, key: str) -> list:
-    """レスポンスの形ゆれを吸収して目的のリストを取り出す。"""
-    if isinstance(data, list):
-        return data
-    if isinstance(data, dict):
-        if key in data and isinstance(data[key], list):
-            return data[key]
-        for v in data.values():
-            if isinstance(v, dict) and key in v and isinstance(v[key], list):
-                return v[key]
-            if isinstance(v, list):
-                return v
-    return []
-
-
-def _dig(data, *keys):
-    cur = data
-    for k in keys:
-        if not isinstance(cur, dict):
-            return None
-        cur = cur.get(k)
-    return cur
-
-
-def _bpm_from_beats(beats: list) -> float | None:
-    """連続する拍の間隔の中央値から BPM を推定する。"""
-    starts = [b.get("start") for b in beats if isinstance(b, dict) and "start" in b]
-    starts = sorted(s for s in starts if s is not None)
-    if len(starts) < 2:
-        return None
-    diffs = np.diff(starts)
-    median = float(np.median(diffs))
-    if median <= 0:
-        return None
-    # start がミリ秒で来る場合（間隔が大きい）は秒に換算
-    interval_sec = median / 1000 if median > 10 else median
-    return round(60.0 / interval_sec, 1)
-
-
-def _chord_progression(chords: list, limit: int = 24) -> list[str]:
-    """連続する同名コードをまとめてコード進行のシーケンスにする。"""
-    names = [c.get("name") for c in chords if isinstance(c, dict) and c.get("name")]
-    seq, prev = [], None
-    for name in names:
-        if name != prev:
-            seq.append(name)
-            prev = name
-    return seq[:limit]
-
-
-def _unique_chords(chords: list) -> list[str]:
-    seen = []
-    for c in chords:
-        name = c.get("name") if isinstance(c, dict) else None
-        if name and name not in seen:
-            seen.append(name)
-    return seen
-
-
-def describe_songle(d: dict) -> str:
-    """Songle の解析結果を日本語の説明テキストにする。"""
-    prog = " → ".join(d["chord_progression"]) if d["chord_progression"] else "（取得なし）"
-    uniq = ", ".join(d["unique_chords"]) if d["unique_chords"] else "（取得なし）"
-    bpm = d["bpm"] if d["bpm"] is not None else "（取得なし）"
-    return (
-        f"- 解析方法: Songle API（産総研の音楽理解技術による解析結果）\n"
-        f"- 曲名 / アーティスト: {d['title']} / {d['artist']}\n"
-        f"- 長さ: {d['duration_sec']} 秒\n"
-        f"- 推定BPM: {bpm}\n"
-        f"- コード進行（冒頭）: {prog}\n"
-        f"- 使用コード一覧: {uniq}\n"
-        f"- サビ（繰り返し区間）の数: {d['n_chorus']}"
-    )
