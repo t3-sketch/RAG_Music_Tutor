@@ -27,13 +27,13 @@ import json
 from datetime import date
 from pathlib import Path
 
-import config
-import embedder
-import retriever
-import llm as llm_module  # 生成層（本番と同じ Gemini 呼び出し）
+from music_rag import config
+from music_rag import embedder
+from music_rag import retriever
+from music_rag import llm as llm_module  # 生成層（本番と同じ Gemini 呼び出し）
 
-EVAL_PATH = Path(__file__).resolve().parent / "data" / "eval" / "questions.json"
-SCORES_DIR = Path(__file__).resolve().parent / "data" / "eval"
+EVAL_PATH = config.EVAL_DIR / "questions.json"
+SCORES_DIR = config.EVAL_DIR
 
 # RAGASの評価者（judge）モデル。生成層（config.GEMINI_MODEL）とは意図的に分離し、
 # 片方のレート制限で評価全体が止まらないようにする。

@@ -22,8 +22,8 @@ import librosa
 import numpy as np
 import torch
 
-from model.btc_chords import idx2voca_chord
-from model.btc_model import BTC_model
+from music_rag.model.btc_chords import idx2voca_chord
+from music_rag.model.btc_model import BTC_model
 
 _WEIGHTS_PATH = os.path.join(os.path.dirname(__file__), "btc_large_voca.pt")
 

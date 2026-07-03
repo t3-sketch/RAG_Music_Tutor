@@ -17,10 +17,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 
-import config
-from pathlib import Path
-
-RAW_DIR = Path(__file__).resolve().parent / "data" / "raw"
+from music_rag import config
 
 HEADERS = {
     "User-Agent": (
@@ -349,5 +346,5 @@ def url_to_source_id(url: str) -> str:
 
 def load_raw(source_id: str) -> list[dict]:
     """data/raw/{source_id}.json を読んで entries を返す。"""
-    path = RAW_DIR / f"{source_id}.json"
+    path = config.RAW_DIR / f"{source_id}.json"
     return json.loads(path.read_text(encoding="utf-8"))

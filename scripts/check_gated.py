@@ -1,7 +1,8 @@
 import json, time, requests
-from pathlib import Path
 
-RAW = Path("data/raw")
+from music_rag import config
+
+RAW = config.RAW_DIR
 MARKER = "この記事の続きを読むには"
 UA = {"User-Agent": "Mozilla/5.0 (research; personal RAG project)"}
 
@@ -21,4 +22,8 @@ for f in sorted(RAW.glob("*.json")):
         gated.append(f.name)
     time.sleep(3)
 
-print("\n=== gated ===\n" + "\n".join(gated))
+report = "=== gated ===\n" + "\n".join(gated) + "\n"
+print("\n" + report)
+config.GATED_REPORT.parent.mkdir(parents=True, exist_ok=True)
+config.GATED_REPORT.write_text(report, encoding="utf-8")
+print(f"saved -> {config.GATED_REPORT}")

@@ -28,11 +28,11 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
-import ingest
+from music_rag import config, ingest
 
 # ── 設定 ──────────────────────────────────────────────
 QUEST_TOP = "https://soundquest.jp/quest/"
-RAW_DIR = Path(__file__).resolve().parent / "data" / "raw"
+RAW_DIR = config.RAW_DIR
 
 # 記事間の待機秒数（個人サイトへの礼儀。短くしすぎないこと）
 SLEEP_BETWEEN_ARTICLES = 3.0

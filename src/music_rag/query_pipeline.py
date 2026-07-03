@@ -3,11 +3,11 @@ main.py の rag_query と同じ流れを、その場で結果を返す同期関�
 Streamlit など同期UIから直接呼ぶ。"""
 from __future__ import annotations
 
-import config
-import embedder
-import retriever
-import audio
-import llm
+from music_rag import config
+from music_rag import embedder
+from music_rag import retriever
+from music_rag import audio
+from music_rag import llm
 
 
 def answer_query(query: str, top_k: int = config.TOP_K,

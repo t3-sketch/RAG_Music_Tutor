@@ -20,8 +20,8 @@ import pydantic
 from fastapi import FastAPI
 from dotenv import load_dotenv
 
-import config
-from custom_types import (
+from music_rag import config
+from music_rag.custom_types import (
     # ingest 側
     ScrapeEntry,
     ChunkWithSource,
@@ -33,11 +33,11 @@ from custom_types import (
 )
 
 # 処理モジュール（接着剤である main.py だけが全部を知る）
-import ingest
-import embedder
-import retriever
-import audio
-import llm
+from music_rag import ingest
+from music_rag import embedder
+from music_rag import retriever
+from music_rag import audio
+from music_rag import llm
 
 load_dotenv()
 

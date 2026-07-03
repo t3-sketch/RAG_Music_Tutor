@@ -5,8 +5,8 @@
 # 改変内容: import元を utils.transformer_modules -> model.transformer_modules に変更、
 #           モジュールレベルの use_cuda 判定と末尾の __main__ 動作確認ブロックを削除。
 #           それ以外のモデル定義（クラス/関数の実装）は無改変。
-from model.transformer_modules import *
-from model.transformer_modules import _gen_timing_signal, _gen_bias_mask
+from music_rag.model.transformer_modules import *
+from music_rag.model.transformer_modules import _gen_timing_signal, _gen_bias_mask
 
 class self_attention_block(nn.Module):
     def __init__(self, hidden_size, total_key_depth, total_value_depth, filter_size, num_heads,

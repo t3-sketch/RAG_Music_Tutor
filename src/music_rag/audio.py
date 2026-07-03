@@ -134,7 +134,7 @@ def detect_chords(
         同一コードが連続する区間はマージ済み。
     """
     try:
-        from model.btc_infer import recognize_chords_btc
+        from music_rag.model.btc_infer import recognize_chords_btc
 
         raw_chords = recognize_chords_btc(path, device=device)
         converted = [

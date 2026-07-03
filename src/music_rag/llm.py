@@ -4,7 +4,7 @@ from google.genai import types
 from google.genai import errors as genai_errors
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-import config
+from music_rag import config
 
 SYSTEM_PROMPT = """あなたは音楽理論と楽曲分析の専門家です。
 以下の参考資料（音楽理論教材からの抜粋）を根拠に、ユーザーの質問へ日本語で丁寧かつ具体的に答えてください。

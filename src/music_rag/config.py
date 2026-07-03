@@ -1,8 +1,18 @@
 """プロジェクト全体の設定を一元管理するモジュール。"""
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# --- データパス ---
+# 既定は cwd 基準の ./data（コマンドは repo ルートから実行する規約）。
+# 別の場所から実行する場合は MUSIC_RAG_DATA_DIR で上書きする。
+DATA_DIR = Path(os.getenv("MUSIC_RAG_DATA_DIR", "data")).resolve()
+RAW_DIR = DATA_DIR / "raw"
+EVAL_DIR = DATA_DIR / "eval"
+GATED_REPORT = DATA_DIR / "reports" / "gated_report.txt"
 
 # --- ベクトルDB ---
 # chunking戦略ごとの collection。evaluation.py が戦略比較にも使う。

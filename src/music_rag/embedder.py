@@ -15,7 +15,7 @@ from functools import lru_cache
 
 from FlagEmbedding import BGEM3FlagModel
 
-import config
+from music_rag import config
 
 
 @lru_cache(maxsize=1)

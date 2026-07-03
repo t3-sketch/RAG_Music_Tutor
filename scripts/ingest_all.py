@@ -26,10 +26,11 @@ from pathlib import Path
 
 import inngest
 
-from main import inngest_client
+from music_rag import config
+from music_rag.main import inngest_client
 
-RAW_DIR = Path(__file__).resolve().parent / "data" / "raw"
-GATED_REPORT = Path(__file__).resolve().parent / "data" / "reports" / "gated_report.txt"
+RAW_DIR = config.RAW_DIR
+GATED_REPORT = config.GATED_REPORT
 
 
 def load_gated_ids() -> set[str]:

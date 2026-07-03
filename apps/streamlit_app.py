@@ -2,8 +2,8 @@ import os
 import tempfile
 
 import streamlit as st
-from query_pipeline import answer_query
-import config
+from music_rag.query_pipeline import answer_query
+from music_rag import config
 
 st.set_page_config(page_title="music-rag", page_icon="🎵")
 st.title("🎵 music-rag")

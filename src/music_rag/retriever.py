@@ -19,7 +19,7 @@ from functools import lru_cache
 
 from qdrant_client import QdrantClient, models
 
-import config
+from music_rag import config
 
 # source + chunk_index から安定 ID を作るための名前空間。
 # 同じ source の再投入で同じ ID になり、重複せず上書きされる（冪等）。
