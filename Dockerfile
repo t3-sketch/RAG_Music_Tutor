@@ -3,7 +3,7 @@
 # 注意: torch + FlagEmbedding を含むためイメージは数GB級になる。
 # BGE-M3 の重み（約2GB）はイメージに含めず、初回起動時に HF Hub から
 # ダウンロードされる（HF_HOME を volume にすると再取得を避けられる）。
-FROM python:3.13-slim
+FROM python:3.11-slim
 
 # librosa / audioread が音声デコードに使うシステムライブラリ
 RUN apt-get update && apt-get install -y --no-install-recommends \

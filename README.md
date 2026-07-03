@@ -196,13 +196,13 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 - **生成**: Gemini API（評価 judge は別モデルに分離）
 - **評価**: hit-rate@k / MRR（自作）+ RAGAS 0.4
 - **音響解析**: librosa（テンポ・キー）+ BTC-ISMIR19（コード認識、large_voca）
-- **言語/環境**: Python 3.13（conda + uv、src layout パッケージ）
+- **言語/環境**: Python 3.11（conda + uv、src layout パッケージ）
 
 ---
 
 ## セットアップ
 
-前提: Docker, Python 3.13, conda, uv
+前提: Docker, Python 3.11+, conda, uv
 
 ```bash
 # 1) Python 環境（music_rag パッケージが editable install される）

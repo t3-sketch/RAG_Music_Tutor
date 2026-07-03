@@ -2,7 +2,7 @@
 name = "music-rag"
 version = "0.1.0"
 description = "SoundQuestの音楽理論記事をcorpusとした日本語RAGシステム。音声ファイルの解析（コード進行・キー・テンポ）と結びつけた理論解説を生成する"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "fastapi>=0.138.0",
