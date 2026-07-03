@@ -211,6 +211,41 @@ def _merge_adjacent_chords(raw_chords: list[tuple[float, float, str]]) -> list[d
     return merged
 
 
+def describe(analysis: dict) -> str:
+    """analyze()の結果をLLMプロンプト用の日本語テキストに変換する。
+
+    Args:
+        analysis: analyze()の返り値（{"tempo","beats","key","chords"}）。
+
+    Returns:
+        生成層のプロンプトに埋め込む音響特徴の説明文。
+    """
+    lines = [
+        f"- テンポ: 約 {round(analysis['tempo'])} BPM",
+        f"- 推定キー: {analysis['key']}",
+    ]
+
+    chords = [c for c in analysis.get("chords", []) if c["chord"] != "N"]
+    if chords:
+        # 出現時間の合計が長い順に主要コードを挙げる
+        durations: dict[str, float] = {}
+        for c in chords:
+            durations[c["chord"]] = durations.get(c["chord"], 0.0) + (c["end"] - c["start"])
+        main_chords = sorted(durations.items(), key=lambda kv: kv[1], reverse=True)[:8]
+        lines.append(
+            "- 主要コード（出現時間順）: "
+            + ", ".join(f"{name}（{dur:.1f}秒）" for name, dur in main_chords)
+        )
+
+        # 進行の先頭部分を時系列で示す（全区間は長すぎるため上限を設ける）
+        max_segments = 48
+        progression = " → ".join(c["chord"] for c in chords[:max_segments])
+        suffix = "（以降省略）" if len(chords) > max_segments else ""
+        lines.append(f"- コード進行（時系列）: {progression}{suffix}")
+
+    return "\n".join(lines)
+
+
 def analyze(path: str) -> dict:
     """Phase 2 MVPの全解析をまとめて実行する接着関数。
 

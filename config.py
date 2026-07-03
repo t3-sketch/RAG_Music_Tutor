@@ -28,12 +28,6 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-m3")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
-# --- Songle API ---
-SONGLE_API_TOKEN = os.getenv("SONGLE_API_TOKEN", "")
-# 注意: ベースURLと認証方式は取得済みトークンのダッシュボードで要確認。
-# 必要に応じてここを書き換えてください。
-SONGLE_API_BASE = "https://widget.songle.jp/api/v1"
-
 # --- チャンク分割（文字数ベース。日本語教材を想定）---
 CHUNK_CHARS = 800
 CHUNK_OVERLAP = 120

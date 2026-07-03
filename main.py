@@ -136,12 +136,12 @@ async def rag_query(ctx: inngest.Context) -> dict:
     )
 
     # ── step3: 音声解析（任意）─────────────────────
-    # songle_url が None のときはスキップして None を返す。
+    # audio_path が None のときはスキップして None を返す。
     def _analyze_audio() -> str | None:
-        if not data.songle_url:
+        if not data.audio_path:
             return None
-        songle_data = audio.fetch_songle(data.songle_url)
-        return audio.describe_songle(songle_data)
+        analysis = audio.analyze(data.audio_path)
+        return audio.describe(analysis)
 
     audio_desc: str | None = await ctx.step.run(
         "analyze-audio",
