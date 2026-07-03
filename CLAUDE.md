@@ -30,7 +30,7 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 |---|---|---|
 | Embeddings | BGE-M3 (FlagEmbedding) | dense 1024次元。ハイブリッド検索（sparse+dense）は将来課題 |
 | Vector DB | Qdrant | Docker、bind mount: `data/qdrant/` |
-| 生成層 LLM | Gemini (`gemini-2.0-flash`) | `llm.py` 経由。Claude APIはMVPでは不使用 |
+| 生成層 LLM | Gemini (`gemini-3.5-flash`) | `llm.py` 経由（`config.GEMINI_MODEL`、env `GEMINI_MODEL` で上書き可）。Claude APIはMVPでは不使用 |
 | 評価 | RAGAS 0.4.3 | judge: `gemini-3.1-flash-lite`。langchain-community==0.3.27 ピン留め必須 |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
 | UI | Streamlit (`apps/streamlit_app.py`) | |
