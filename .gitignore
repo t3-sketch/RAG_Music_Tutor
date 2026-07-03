@@ -1,7 +1,6 @@
 # 環境・秘密
 .env
 .venv/
-.python-version
 
 # データ（権利者の許諾前のため非公開）
 data/
