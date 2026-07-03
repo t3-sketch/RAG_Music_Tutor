@@ -203,6 +203,7 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 ## セットアップ
 
 前提: Docker, Python 3.11+, conda, uv
+（URL入力機能を使う場合は ffmpeg も必要: `brew install ffmpeg`。動かなくなったらまず `uv lock --upgrade-package yt-dlp` で yt-dlp を更新）
 
 ```bash
 # 1) Python 環境（music_rag パッケージが editable install される）
