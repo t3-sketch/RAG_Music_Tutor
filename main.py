@@ -85,12 +85,12 @@ async def rag_ingest(ctx: inngest.Context) -> dict:
     )
 
     # ── step2: チャンク分割 ─────────────────────────
-    # ingest.chunk は純粋関数で list[dict] を期待する
-    # （custom_types を import しない設計）。
+    # ingest.chunk_entries は純粋関数で list[dict] を期待する
+    # （custom_types を import しない設計）。戦略は config.CHUNK_STRATEGY に従う。
     # 接着剤である main.py で ScrapeEntry → dict に戻してから渡す。
     chunks: list[dict] = await ctx.step.run(
         "chunk",
-        lambda: ingest.chunk([e.model_dump() for e in entries], source_id),
+        lambda: ingest.chunk_entries([e.model_dump() for e in entries], source_id),
     )
 
     # ── step3: embed ───────────────────────────────

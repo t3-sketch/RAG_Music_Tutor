@@ -5,14 +5,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # --- ベクトルDB ---
-COLLECTION_NAME = "music_theory"
-
-# 評価実験用の collection（chunking戦略ごと）。
-# 本番の QDRANT_COLLECTION とは別物。evaluation.py が戦略比較に使う。
+# chunking戦略ごとの collection。evaluation.py が戦略比較にも使う。
 COLLECTIONS = {
     "fixed": "music_theory",
     "structure": "music_theory_structure",
 }
+
+# 本番のchunking戦略。RAGAS評価（2026-07-02、context_precision +0.134）を受けて
+# structure をデフォルト採用。A/B比較時は環境変数 CHUNK_STRATEGY=fixed で切替。
+CHUNK_STRATEGY = os.getenv("CHUNK_STRATEGY", "structure")
+COLLECTION_NAME = COLLECTIONS[CHUNK_STRATEGY]
 
 # --- Qdrant（Docker, http://localhost:6333）---
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")

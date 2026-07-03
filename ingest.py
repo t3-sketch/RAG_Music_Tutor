@@ -330,6 +330,19 @@ def _chunk_text(text: str) -> list[str]:
     return chunks
 
 
+# chunking戦略のdispatcher。main.py に戦略分岐を持ち込まないためここに置く。
+# 両戦略とも {"text","source","chunk_index"} を返す同一シグネチャ。
+CHUNKERS = {
+    "fixed": chunk,
+    "structure": chunk_structure,
+}
+
+
+def chunk_entries(entries: list[dict], source_id: str, strategy: str | None = None) -> list[dict]:
+    """config.CHUNK_STRATEGY（または明示指定）に応じたchunkerで分割する。"""
+    return CHUNKERS[strategy or config.CHUNK_STRATEGY](entries, source_id)
+
+
 def url_to_source_id(url: str) -> str:
     """URL から安定した source_id を生成する。"""
     return url.replace("https://", "").replace("http://", "").replace("/", "_").rstrip("_")

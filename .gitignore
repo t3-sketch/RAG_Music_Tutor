@@ -20,6 +20,4 @@ __pycache__/
 *.bak
 whole_project.txt
 弱点.txt
-ingest_structure.py
-test_chunk_structure.py
 change.md
