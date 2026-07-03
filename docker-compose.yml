@@ -8,3 +8,20 @@ services:
     volumes:
       - ./data/qdrant:/qdrant/storage
     restart: unless-stopped
+
+  # デプロイ検証用（既定の `docker compose up -d` では起動しない）:
+  #   docker compose --profile app up
+  app:
+    build: .
+    container_name: music-rag-app
+    profiles: ["app"]
+    ports:
+      - "8501:8501"
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - qdrant

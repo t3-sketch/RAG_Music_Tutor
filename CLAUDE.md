@@ -33,11 +33,27 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 | 生成層 LLM | Gemini (`gemini-2.0-flash`) | `llm.py` 経由。Claude APIはMVPでは不使用 |
 | 評価 | RAGAS 0.4.3 | judge: `gemini-3.1-flash-lite`。langchain-community==0.3.27 ピン留め必須 |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
-| UI | Streamlit (`app.py`) | |
-| 音響解析 | librosa + BTC-ISMIR19 (large_voca) | `model/` 配下にvendoring済み（MIT） |
-| Python環境 | conda (Python 3.11) + uv | condaはinterpreter管理、uvはパッケージ管理 |
+| UI | Streamlit (`apps/streamlit_app.py`) | |
+| 音響解析 | librosa + BTC-ISMIR19 (large_voca) | `src/music_rag/model/` 配下にvendoring済み（MIT） |
+| Python環境 | conda (Python 3.11) + uv | condaはinterpreter管理、uvはパッケージ管理。src layout・editable install |
 
 作業パス: `/Users/macuser/dev/RAG_Music_Theory`
+
+### ディレクトリ構成（2026-07-02 リファクタ後）
+- `src/music_rag/` — 本番パイプライン（pipパッケージ。config / main / query_pipeline / ingest / embedder / retriever / llm / audio / custom_types / model）
+- `apps/streamlit_app.py` — UI入口
+- `scripts/` — 運用CLI（scrape_all / ingest_all / check_gated）
+- `experiments/` — evaluation.py（hit-rate/MRR/RAGAS、chunking A/B）
+- `docs/` — demo.png、evaluation.md（評価数値の公開用置き場）
+
+### 起動コマンド（リファクタ後）
+```bash
+uv run streamlit run apps/streamlit_app.py
+uv run uvicorn music_rag.main:app --reload      # 旧: uvicorn main:app
+uv run python scripts/ingest_all.py
+uv run python experiments/evaluation.py
+```
+**コマンドはrepoルートから実行する規約**（データパスは `config.DATA_DIR`＝cwd基準の `./data`。`MUSIC_RAG_DATA_DIR` で上書き可）。
 
 ---
 
