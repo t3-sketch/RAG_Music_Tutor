@@ -69,7 +69,7 @@ uv run python experiments/evaluation.py
 
 ### 実験的変更は本番から完全に分離
 - 新関数 + 新collectionで二重隔離
-- 例: 構造ベースchunking実験は `chunk_structure()` + `music_theory_structure` collection で行い、本番の `music_theory` collection は不変に保つ
+- 例: 構造ベースchunking実験は `chunk_structure()` + `music_theory_structure` collection で行い、当時の本番 `music_theory` collection は不変に保った（その後 structure を本番昇格。§4参照）
 
 ### upsertのidempotency
 - point IDは `uuid5(source:chunk_index)` でdeterministic
@@ -124,7 +124,8 @@ uv run python experiments/evaluation.py
 ### 既知の未解決事項
 - **「5-1と4-1の違い」「7-1と4-3の解決の違い」（度数表記の比較質問）は構造chunkingでも context_precision/recall = 0.0** → chunkingでは解けない検索課題（表記ゆれ・複数記事にまたがる比較）。ハイブリッド検索/クエリ拡張の動機。
 - **answer_correctness は依然低い（0.37）** → 粒度ミスマッチ疑い。生成層・評価セット側の課題。
-- **構造chunkingを本番採用するか（`music_theory` collection を置き換えるか）は未決定** → TM判断待ち。
+- ~~構造chunkingを本番採用するか~~ → **検索先としての採用は完了済み**（refactor Phase 2 で `CHUNK_STRATEGY` の default が `"structure"` になり、`COLLECTION_NAME` = `music_theory_structure` が本番の検索先。`CHUNK_STRATEGY=fixed` でA/B用に旧経路へ切替可）。
+- **旧 `music_theory` collection（固定長chunking・1,502 points）をQdrantから削除するかは未決定** → TM判断待ち（残す場合はA/B比較用という位置づけ）。
 - **音声つき完全E2E（UI→生成）は未実施**（gemini-3.5-flash free-tier日次quotaをRAGASで消費したため）。構成要素は個別検証済み。quota回復後にUIから一度通す。
 
 ---
@@ -148,7 +149,7 @@ uv run python experiments/evaluation.py
 - テンションコード（9th/11th/13th）は将来課題。音源分離が前提条件で、学術的にも未解決に近い領域（BTC-FDAA-FGF等の論文で確認済み）
 
 ### 次のマイルストーン（Phase 4 候補・未確定）
-- 構造chunkingの本番採用判断（採用なら `music_theory` の置き換え手順を設計）
+- 旧 `music_theory` collection（fixed chunking）を削除するかの判断（検索先としての構造chunking採用は完了済み。残すならA/B比較用としての位置づけを明記）
 - 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）
 - 音声解析結果によるretrievalクエリ拡張（現状は生成層にのみ寄与）
 
