@@ -29,7 +29,7 @@ import inngest
 from main import inngest_client
 
 RAW_DIR = Path(__file__).resolve().parent / "data" / "raw"
-GATED_REPORT = Path(__file__).resolve().parent / "gated_report.txt"
+GATED_REPORT = Path(__file__).resolve().parent / "data" / "reports" / "gated_report.txt"
 
 
 def load_gated_ids() -> set[str]:
