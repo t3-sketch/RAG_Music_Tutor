@@ -20,3 +20,12 @@ __pycache__/
 whole_project.txt
 弱点.txt
 change.md
+
+# オープンコーパスのscrape/ingestスクリプトと運用メモ
+# （著作権配慮のためリポジトリには含めない。アプリ実行には不要）
+scripts/scrape_omt.py
+scripts/build_omt_entries.py
+scripts/ingest_open.py
+scripts/build_eval_forum.py
+docs/graph-rag-experiment-plan.md
+docs/mvp-sharing-runbook.md
