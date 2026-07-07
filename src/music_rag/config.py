@@ -48,3 +48,13 @@ MIN_SECTION_CHARS = 100
 # --- 検索・生成 ---
 TOP_K = 5
 MAX_TOKENS = 1500
+
+# 音声入力UI全体のゲート（MVP限定公開ではテキストQAに絞るため false にする）
+ENABLE_AUDIO_INPUT = os.getenv("ENABLE_AUDIO_INPUT", "true").lower() in ("true", "1", "yes")
+
+# --- 音声URL入力（YouTube / ニコニコ動画）---
+# yt-dlpによるダウンロードは各サービスの利用規約に抵触しうるため、
+# ローカル個人利用・研究目的限定の機能。公開デプロイ時は false にして無効化する。
+ENABLE_URL_INPUT = os.getenv("ENABLE_URL_INPUT", "true").lower() in ("true", "1", "yes")
+# ダウンロード前にメタデータで弾く動画長の上限（秒）。BTC推論時間を実用範囲に抑える。
+MAX_AUDIO_DURATION_SEC = int(os.getenv("MAX_AUDIO_DURATION_SEC", "600"))

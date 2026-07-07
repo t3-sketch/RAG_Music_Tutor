@@ -7,6 +7,7 @@ from music_rag import config
 from music_rag import embedder
 from music_rag import retriever
 from music_rag import audio
+from music_rag import audio_source
 from music_rag import llm
 
 
@@ -15,9 +16,13 @@ def answer_query(query: str, top_k: int = config.TOP_K,
     query_vector = embedder.embed_query(query)          # step1: embed
     found = retriever.search(query_vector, top_k)        # step2: search（既定で music_theory）
 
-    audio_desc = None                                    # step3: 音声（任意）
+    audio_desc = None                                    # step3: 音声（任意。ローカルパス or URL）
     if audio_path:
-        audio_desc = audio.describe(audio.analyze(audio_path))
+        local_path = audio_source.resolve(audio_path)    # URL なら一時ファイルに解決
+        try:
+            audio_desc = audio.describe(audio.analyze(local_path))
+        finally:
+            audio_source.cleanup(local_path, audio_path)
 
     # retriever の {"text","source","score"} を llm.explain が期待する形に詰め替え
     chunks_for_llm = [{"text": c["text"], "meta": {"source": c["source"]}} for c in found]

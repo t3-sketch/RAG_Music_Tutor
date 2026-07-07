@@ -46,7 +46,7 @@ class UpsertResult(pydantic.BaseModel):
 class QueryEventData(pydantic.BaseModel):
     """rag/query イベントの入力。"""
     query: str
-    audio_path: str | None = None     # 任意。ローカル音声ファイルを解析するときだけ
+    audio_path: str | None = None     # 任意。ローカル音声パス or 動画URL（audio_sourceが解決）
     top_k: int = 5
 
 

@@ -2,7 +2,7 @@
 
 このドキュメントは、Claude（および他のAIアシスタント/コラボレーター）がこのリポジトリで作業する際のオンボーディング資料。プロジェクトの目的・アーキテクチャ・設計判断・作業規約をまとめる。
 
-最終更新: 2026-07-02（Phase 3 完了時点）
+最終更新: 2026-07-05（Phase 4: 音声URL入力 完了時点）
 
 ---
 
@@ -27,13 +27,13 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 ## 2. 技術スタック
 
 | レイヤー | 技術 | 備考 |
-|---|---|---|
+| --- | --- | --- |
 | Embeddings | BGE-M3 (FlagEmbedding) | dense 1024次元。ハイブリッド検索（sparse+dense）は将来課題 |
 | Vector DB | Qdrant | Docker、bind mount: `data/qdrant/` |
 | 生成層 LLM | Gemini (`gemini-3.5-flash`) | `llm.py` 経由（`config.GEMINI_MODEL`、env `GEMINI_MODEL` で上書き可）。Claude APIはMVPでは不使用 |
 | 評価 | RAGAS 0.4.3 | judge: `gemini-3.1-flash-lite`。langchain-community==0.3.27 ピン留め必須 |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
-| UI | Streamlit (`apps/streamlit_app.py`) | |
+| UI | Streamlit (`apps/streamlit_app.py`) |  |
 | 音響解析 | librosa + BTC-ISMIR19 (large_voca) | `src/music_rag/model/` 配下にvendoring済み（MIT） |
 | Python環境 | conda (Python 3.11) + uv | condaはinterpreter管理、uvはパッケージ管理。src layout・editable install |
 
@@ -88,7 +88,7 @@ uv run python experiments/evaluation.py
 **RAGAS最終スコア:**
 
 | Metric | Score |
-|---|---|
+| --- | --- |
 | faithfulness | 0.804 |
 | answer_relevancy | 0.881 |
 | answer_correctness | 0.361 |
@@ -121,12 +121,21 @@ uv run python experiments/evaluation.py
   - 結果: `data/eval/ragas_music_theory_structure_20260702.json/.csv`
 - 作業ログの詳細は `change.md` を参照。
 
+### Phase 4: 音声URL入力（YouTube / ニコニコ）— 完了（2026-07-05）
+- **`audio_source.py` 新設**: URL → ローカル一時ファイルパスの解決レイヤー。「下流はすべて audio_path を話す」契約の手前に置き、`audio.py` は無変更。ローカルパスは素通し。
+  - 許可ホストallowlist（YouTube / ニコニコのみ。SSRF的悪用の防止兼用）
+  - ダウンロード前にメタデータのみ取得し `MAX_AUDIO_DURATION_SEC`（default 600秒）で弾く
+  - `ENABLE_URL_INPUT` ゲートは resolve() 自身が enforcement。**利用規約の関係でローカル個人利用限定・公開デプロイ時は false**
+  - yt-dlpエラー → ユーザー向け日本語メッセージ変換（非公開/削除済/年齢制限/会員限定/地域制限）
+  - フォーマットは mp3 mono 採用（audioreadフォールバック警告の回避 + サイズ半減。`change.md` 2026-07-05 に計測表）
+- **検証完了（2026-07-05）**: ①UIからの完全E2E（YouTube URL → yt-dlp → BTC解析 128BPM/D#maj/vi-IV-I-V → Gemini生成・出典表示）、②ニコニコ実URL（sm9・nico.ms 短縮URL、削除済み動画のエラー変換含む）、③Inngest経由（`rag/query` イベントに audio_path=URL、step内 resolve→analyze→cleanup 完走・一時dir残骸なし）。
+
 ### 既知の未解決事項
-- **「5-1と4-1の違い」「7-1と4-3の解決の違い」（度数表記の比較質問）は構造chunkingでも context_precision/recall = 0.0** → chunkingでは解けない検索課題（表記ゆれ・複数記事にまたがる比較）。ハイブリッド検索/クエリ拡張の動機。
-- **answer_correctness は依然低い（0.37）** → 粒度ミスマッチ疑い。生成層・評価セット側の課題。
+- **「5-1と4-1の違い」「7-1と4-3の解決の違い」（度数表記の比較質問）は構造chunkingでも context&#95;precision/recall = 0.0** → chunkingでは解けない検索課題（表記ゆれ・複数記事にまたがる比較）。ハイブリッド検索/クエリ拡張の動機。
+- **answer&#95;correctness は依然低い（0.37）** → 粒度ミスマッチ疑い。生成層・評価セット側の課題。
 - ~~構造chunkingを本番採用するか~~ → **検索先としての採用は完了済み**（refactor Phase 2 で `CHUNK_STRATEGY` の default が `"structure"` になり、`COLLECTION_NAME` = `music_theory_structure` が本番の検索先。`CHUNK_STRATEGY=fixed` でA/B用に旧経路へ切替可）。
 - **旧 `music_theory` collection（固定長chunking・1,502 points）をQdrantから削除するかは未決定** → TM判断待ち（残す場合はA/B比較用という位置づけ）。
-- **音声つき完全E2E（UI→生成）は未実施**（gemini-3.5-flash free-tier日次quotaをRAGASで消費したため）。構成要素は個別検証済み。quota回復後にUIから一度通す。
+- ~~音声つき完全E2E（UI→生成）は未実施~~ → **完了（2026-07-05）**。UI・Inngest両経路でURL入力込みのE2Eを実走確認（Phase 4 参照）。
 
 ---
 
@@ -148,13 +157,13 @@ uv run python experiments/evaluation.py
 - MVPは MajMin + 7th まで
 - テンションコード（9th/11th/13th）は将来課題。音源分離が前提条件で、学術的にも未解決に近い領域（BTC-FDAA-FGF等の論文で確認済み）
 
-### 次のマイルストーン（Phase 4 候補・未確定）
+### 次のマイルストーン（Phase 5 候補・未確定）
 - 旧 `music_theory` collection（fixed chunking）を削除するかの判断（検索先としての構造chunking採用は完了済み。残すならA/B比較用としての位置づけを明記）
 - 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）
 - 音声解析結果によるretrievalクエリ拡張（現状は生成層にのみ寄与）
 
 ### バックログ
-- YouTubeリンクからの音声解析（現在の入力はローカル音声ファイルのみ）
+- ~~YouTubeリンクからの音声解析~~ → Phase 4 で完了（YouTube / ニコニコURL入力。§4参照）
 - メロディ解析（F0）
 - セグメント分割（Aメロ/Bメロ/サビ等の構造認識）
 - テンションコード認識（音源分離が前提）
@@ -181,7 +190,7 @@ uv run python experiments/evaluation.py
 ## 8. データとファイルの取り扱い
 
 | パス | 内容 | Git |
-|---|---|---|
+| --- | --- | --- |
 | `data/raw/*.json` | SoundQuest 162記事 | gitignore（権利保護のためローカルのみ） |
 | `data/eval/` | 20問silver Q&A、RAGAS結果 | gitignore（ローカルのみ） |
 | `data/qdrant/` | Qdrant bind mount | gitignore |

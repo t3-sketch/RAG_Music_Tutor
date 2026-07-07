@@ -37,6 +37,7 @@ from music_rag import ingest
 from music_rag import embedder
 from music_rag import retriever
 from music_rag import audio
+from music_rag import audio_source
 from music_rag import llm
 
 load_dotenv()
@@ -137,11 +138,17 @@ async def rag_query(ctx: inngest.Context) -> dict:
 
     # ── step3: 音声解析（任意）─────────────────────
     # audio_path が None のときはスキップして None を返す。
+    # URL（YouTube / ニコニコ）の場合は audio_source が一時ファイルに解決する。
+    # resolve → analyze → cleanup を step 内で完結させ、リトライ時にゴミを残さない。
     def _analyze_audio() -> str | None:
         if not data.audio_path:
             return None
-        analysis = audio.analyze(data.audio_path)
-        return audio.describe(analysis)
+        local_path = audio_source.resolve(data.audio_path)
+        try:
+            analysis = audio.analyze(local_path)
+            return audio.describe(analysis)
+        finally:
+            audio_source.cleanup(local_path, data.audio_path)
 
     audio_desc: str | None = await ctx.step.run(
         "analyze-audio",

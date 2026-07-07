@@ -56,10 +56,10 @@
 固定長 800 字 chunking と、見出し境界で分割し breadcrumb 文脈を付与する構造ベース chunking を比較しました。
 
 | 指標 | fixed | structure | diff |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | hit-rate@5 | 0.85 | 0.85 | ±0 |
 | MRR | 0.792 | 0.800 | +0.008 |
-| **context_precision** (RAGAS) | 0.653 | **0.788** | **+0.134** |
+| **context&#95;precision** (RAGAS) | 0.653 | **0.788** | **+0.134** |
 | context_recall (RAGAS) | 0.667 | 0.717 | +0.050 |
 | faithfulness / answer_relevancy / answer_correctness | — | — | 横ばい |
 
@@ -172,6 +172,7 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 │   ├── retriever.py          #   Qdrant upsert / search
 │   ├── llm.py                #   Gemini による解説生成
 │   ├── audio.py              #   音響解析（テンポ・キー・コード進行）
+│   ├── audio_source.py       #   音声URL入力の解決レイヤー（YouTube / ニコニコ → 一時ファイル）
 │   └── model/                #   BTC-ISMIR19 vendoring（コード認識モデル）
 ├── apps/
 │   └── streamlit_app.py      # Streamlit UI（質問・回答・出典・音響解析結果を表示）
@@ -235,7 +236,7 @@ uv run python scripts/ingest_all.py    # chunk → embed → upsert を Inngest 
 #   uv run uvicorn music_rag.main:app --reload
 #   npx inngest-cli@latest dev -u http://127.0.0.1:8000/api/inngest
 
-# デモ UI（質問 → 検索 → 生成。音声ファイルのアップロードにも対応）
+# デモ UI（質問 → 検索 → 生成。音声ファイルのアップロード / YouTube・ニコニコURL入力にも対応）
 uv run streamlit run apps/streamlit_app.py
 
 # 検索品質の評価
@@ -252,6 +253,7 @@ CHUNK_STRATEGY=fixed uv run streamlit run apps/streamlit_app.py   # 旧chunking�
 - ~~チャンク品質の刷新~~: 固定長分割 → 構造ベース分割。RAGAS で context_precision +0.134 を確認し本番採用（上記「評価と改善の記録」）
 - ~~生成品質の評価~~: RAGAS 5 指標評価を chunking A/B の節目で実施
 - ~~音声入力~~: アップロード音源の解析（librosa + BTC-ISMIR19）と解説生成への接続
+- ~~音声URL入力~~: YouTube / ニコニコ動画URLからの解析（yt-dlp。ローカル個人利用限定の機能で、公開デプロイ時は `ENABLE_URL_INPUT=false` で無効化）
 
 今後:
 
