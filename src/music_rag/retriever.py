@@ -77,6 +77,9 @@ def upsert(
     _ensure_collection(collection)        # ← 引数を渡す
     coll = collection or config.QDRANT_COLLECTION   # ← 追加
 
+    # 必須3キーに加え、チャンクが持つ追加メタ（heading / source_url / title /
+    # book / license 等の出典情報）もそのままpayloadへ通す。
+    # SoundQuest系チャンクは追加キーを持たないため従来とpayload同一。
     points = [
         models.PointStruct(
             id=_point_id(chunk["source"], chunk["chunk_index"]),
@@ -85,6 +88,8 @@ def upsert(
                 "text": chunk["text"],
                 "source": chunk["source"],
                 "chunk_index": chunk["chunk_index"],
+                **{k: v for k, v in chunk.items()
+                   if k not in ("text", "source", "chunk_index") and v is not None},
             },
         )
         for chunk, vector in zip(chunks, vectors)
@@ -121,6 +126,13 @@ def search(
                 "text": payload.get("text", ""),
                 "source": payload.get("source", ""),
                 "score": float(point.score),
+                # 出典表示用メタ（旧ポイントには無いのでNone → UI側でフォールバック）
+                "heading": payload.get("heading"),
+                "title": payload.get("title"),
+                "source_url": payload.get("source_url"),
+                "book": payload.get("book"),
+                "license": payload.get("license"),
+                "license_url": payload.get("license_url"),
             }
         )
     return results

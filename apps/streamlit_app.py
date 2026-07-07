@@ -8,7 +8,7 @@ from music_rag import config
 
 st.set_page_config(page_title="music-rag", page_icon="🎵")
 st.title("🎵 music-rag")
-st.caption("SoundQuest の音楽理論記事を根拠に質問へ答える RAG デモ")
+st.caption("音楽理論の教材を根拠に、出典つきで質問へ答える RAG デモ")
 
 with st.sidebar:
     top_k = st.slider("取得チャンク数 (top_k)", 1, 10, config.TOP_K)
@@ -57,8 +57,27 @@ if st.button("質問する", type="primary") and query.strip():
         with st.expander("音響解析結果（テンポ・キー・コード進行）"):
             st.text(result["audio_desc"])
     st.markdown("### 出典")
-    for s in dict.fromkeys(result["sources"]):
-        st.markdown(f"- `{s}`")
+    seen_sources = set()
+    for c in result["contexts"]:
+        if c["source"] in seen_sources:
+            continue
+        seen_sources.add(c["source"])
+        if c.get("source_url"):
+            # 出典メタ付きコーパス（OMT等）: 章タイトルへのリンクで表示
+            st.markdown(f"- [{c.get('title') or c['source']}]({c['source_url']})")
+        else:
+            # 旧コーパス（メタなし）へのフォールバック
+            st.markdown(f"- `{c['source']}`")
+
+    # CC BY-SA等の帰属表示: contexts中のユニークな教材ごとにライセンスを明記
+    books = {(c["book"], c["license"], c.get("license_url"))
+             for c in result["contexts"] if c.get("book") and c.get("license")}
+    for book, license_name, license_url in sorted(books):
+        notice = f"出典教材: {book} — {license_name}"
+        if license_url:
+            notice += f" ({license_url})"
+        st.caption(notice)
+
     with st.expander("取得チャンク（デバッグ）"):
         for i, c in enumerate(result["contexts"], 1):
             st.markdown(f"**{i}. {c['source']}**（score {c['score']:.3f}）")
