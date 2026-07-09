@@ -31,3 +31,4 @@ scripts/omt_pipeline.py
 scripts/build_eval_forum.py
 docs/graph-rag-experiment-plan.md
 docs/mvp-sharing-runbook.md
+docs/deployment-infra-study.md
