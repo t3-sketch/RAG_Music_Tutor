@@ -26,6 +26,8 @@ change.md
 scripts/scrape_omt.py
 scripts/build_omt_entries.py
 scripts/ingest_open.py
+scripts/omt_app.py
+scripts/omt_pipeline.py
 scripts/build_eval_forum.py
 docs/graph-rag-experiment-plan.md
 docs/mvp-sharing-runbook.md

@@ -11,6 +11,10 @@ load_dotenv()
 # 別の場所から実行する場合は MUSIC_RAG_DATA_DIR で上書きする。
 DATA_DIR = Path(os.getenv("MUSIC_RAG_DATA_DIR", "data")).resolve()
 RAW_DIR = DATA_DIR / "raw"
+# オープンライセンスcorpus（OMT等）。取得スクリプト群はgitignoreだが、
+# パス・collection名自体は中立な設定値なのでここで一元管理する。
+RAW_OMT_DIR = DATA_DIR / "raw_omt"
+RAW_OPEN_DIR = DATA_DIR / "raw_open"
 EVAL_DIR = DATA_DIR / "eval"
 GATED_REPORT = DATA_DIR / "reports" / "gated_report.txt"
 
@@ -30,6 +34,8 @@ COLLECTION_NAME = COLLECTIONS[CHUNK_STRATEGY]
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY") or None
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", COLLECTION_NAME)
+# オープンcorpus用collection（SoundQuest系collectionとは分離してA/B比較可能に保つ）
+OPEN_COLLECTION = os.getenv("OPEN_COLLECTION", "music_theory_open")
 # BGE-M3 の dense ベクトル次元。collection 作成時の次元と必ず一致させる。
 EMBED_DIM = 1024
 # 距離関数（cosine 固定）

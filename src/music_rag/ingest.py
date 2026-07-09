@@ -226,6 +226,12 @@ def chunk_structure(entries: list[dict], source_id: str) -> list[dict]:
       返り値の各チャンク: {"text": str, "source": str, "chunk_index": int}
     追加で "heading"（breadcrumb文字列）をpayload用に含める。
     """
+    # 明示的な heading 型 entry（OMT等、DOMのh1-h3由来）が1つでもあれば、
+    # それをセクション境界の正解として使い、heuristic は無効化する。
+    # SoundQuest（text/audio/image のみ）は heading 型を持たないため、
+    # has_explicit_headings=False となり従来の heuristic 経路に完全に一致する。
+    has_explicit_headings = any(e.get("type") == "heading" for e in entries)
+
     sections: list[dict] = []
     current = {"heading": "", "texts": []}
 
@@ -234,7 +240,12 @@ def chunk_structure(entries: list[dict], source_id: str) -> list[dict]:
         entry_type = e.get("type", "text")
         if not text:
             continue
-        if _looks_like_heading(text, entry_type):
+        is_heading = (
+            entry_type == "heading"
+            if has_explicit_headings
+            else _looks_like_heading(text, entry_type)
+        )
+        if is_heading:
             if current["texts"] or current["heading"]:
                 sections.append(current)
             current = {"heading": text, "texts": []}
