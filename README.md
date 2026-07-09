@@ -74,6 +74,11 @@
 
 ## アーキテクチャ
 
+> **公開範囲について**: 取り込み（ingest）パイプラインの実装コード（`ingest.py` / `main.py` /
+> scrape・ingest スクリプト）は、SoundQuest コーパスの権利配慮のため**このリポジトリには含めていません**。
+> 公開しているのは、構築済みの Qdrant から検索・生成する本番経路（query）と評価基盤です。
+> 以下の取り込みパイプラインの説明は設計の記録であり、対応するコードは非公開である点にご留意ください。
+
 ユーザーが直接利用する UI は Streamlit（`apps/streamlit_app.py`）です。FastAPI + Inngest は、取り込みパイプライン（`rag_ingest`）が
 バックグラウンドジョブとして正しく動作するかを検証するための実験用構成として用意しています。Inngest のジョブは
 HTTP 経由で公開する必要があり、Inngest の Python SDK が公式に提供する FastAPI 用アダプタ（`inngest.fast_api.serve`）を

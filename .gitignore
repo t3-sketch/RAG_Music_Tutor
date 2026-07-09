@@ -29,6 +29,16 @@ scripts/ingest_open.py
 scripts/omt_app.py
 scripts/omt_pipeline.py
 scripts/build_eval_forum.py
+
+# SoundQuest 関連の取り込み（ingest）実装は非公開。
+# corpus は権利者許諾待ちであり、本番は構築済みQdrantからの検索・生成(query)のみで動く。
+# ローカルのワーキングコピーは残るが、公開リポジトリには含めない。
+src/music_rag/ingest.py
+src/music_rag/main.py
+src/music_rag/custom_types.py
+scripts/scrape_all.py
+scripts/ingest_all.py
+scripts/check_gated.py
 docs/graph-rag-experiment-plan.md
 docs/mvp-sharing-runbook.md
 docs/deployment-infra-study.md
