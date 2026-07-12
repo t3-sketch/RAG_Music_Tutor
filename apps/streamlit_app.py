@@ -1,5 +1,11 @@
 import os
+import sys
 import tempfile
+from pathlib import Path
+
+# Streamlit Community Cloud には editable install が無いため、src layout の
+# パッケージを直接解決できるようにする（editable install 済みのローカルでは no-op）
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 import streamlit as st
 from music_rag.query_pipeline import answer_query

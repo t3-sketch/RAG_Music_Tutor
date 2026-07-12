@@ -12,6 +12,7 @@ dependencies = [
     "langchain-community==0.3.27",
     "librosa>=0.11.0",
     "numba>=0.60",
+    "openai>=2",
     "python-dotenv>=1.2.2",
     "qdrant-client>=1.18.0",
     "ragas==0.4.3",
@@ -38,6 +39,11 @@ explicit = true
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
 
 [tool.hatch.build.targets.wheel]
 # BTC-ISMIR19 の重み(.pt)・LICENSE等の非Pythonファイルもパッケージに同梱される

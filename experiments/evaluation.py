@@ -24,20 +24,27 @@ from __future__ import annotations
 import asyncio
 import csv
 import json
+import os
 from datetime import date
 from pathlib import Path
 
 from music_rag import config
 from music_rag import embedder
 from music_rag import retriever
-from music_rag import llm as llm_module  # 生成層（本番と同じ Gemini 呼び出し）
+from music_rag import llm as llm_module  # 生成層（本番と同じ NVIDIA 呼び出し）
 
 EVAL_PATH = config.EVAL_DIR / "questions.json"
 SCORES_DIR = config.EVAL_DIR
 
-# RAGASの評価者（judge）モデル。生成層（config.GEMINI_MODEL）とは意図的に分離し、
-# 片方のレート制限で評価全体が止まらないようにする。
-RAGAS_JUDGE_MODEL = "gemini-3.1-flash-lite"
+# RAGASの評価者（judge）モデル。生成層（NVIDIA・meta/llama-3.3-70b-instruct）とは
+# 意図的にプロバイダごと分離する（self-preference bias回避 + レート制限の独立）。
+# Gemini を使う（config.GEMINI_MODEL、既定 gemini-3.1-flash-lite）。モデルは
+# env（RAGAS_JUDGE_MODEL）で上書き可能。
+RAGAS_JUDGE_MODEL = os.getenv("RAGAS_JUDGE_MODEL", config.GEMINI_MODEL)
+
+# 質問間ウェイト（秒）。judge・embeddings とも Gemini 無料枠に集中するため、
+# RPD枯渇（20問中11問しか回らなかった問題）を踏まえてNVIDIA分離時より余裕を持たせる。
+RAGAS_SLEEP_SEC = int(os.getenv("RAGAS_SLEEP_SEC", "15"))
 
 
 # ── eval set 読み込み ───────────────────────────
@@ -149,8 +156,10 @@ def main() -> None:
 def _ragas_setup():
     """RAGAS評価用のLLM/embeddingsをセットアップする。
 
-    google-genaiネイティブクライアントはRAGASのアダプタと相性が悪いため、
-    Geminiの OpenAI互換エンドポイント経由で AsyncOpenAI を使う。
+    judge LLM は Gemini の OpenAI互換エンドポイント経由（AsyncOpenAI）。
+    google-genai ネイティブクライアントはRAGASのアダプタと相性が悪いため
+    （instructor/litellmアダプタが非同期判定に失敗する）、この経路を使う。
+    embeddings（AnswerRelevancy / AnswerCorrectness のみ使用）も Gemini。
     max_tokens はデフォルトだと日本語＋複数statement照合で出力が途中で切れる
     （IncompleteOutputException）ため、明示的に大きめに設定する。
     """
@@ -207,7 +216,7 @@ async def evaluate_generation(eval_set: list[dict], collection: str) -> dict:
     AnswerRelevancy / AnswerCorrectness を計算する。
 
     - retrieved_contexts: retriever.search の各 hit の text
-    - response: llm.explain で生成（本番と同じ生成層、config.GEMINI_MODEL）
+    - response: llm.explain で生成（本番と同じ生成層、NVIDIA・config.NVIDIA_LLM_MODEL）
     - reference: eval set の ground_truth
     - judge: RAGAS_JUDGE_MODEL（生成層とは別モデルでレート制限を分離）
 
@@ -279,9 +288,9 @@ async def evaluate_generation(eval_set: list[dict], collection: str) -> dict:
         _save_checkpoint(collection, per_question)  # 1問ごとに保存
         print(f"  [{i}/{total}] done: {question[:30]}...")
 
-        # レート制限（judge RPM 15 / embedding RPM 100）回避。最後の問では待たない
+        # レート制限（judge 40RPM / embedding RPM 100）回避。最後の問では待たない
         if i < total:
-            await asyncio.sleep(45)
+            await asyncio.sleep(RAGAS_SLEEP_SEC)
 
     n = len(per_question)
 

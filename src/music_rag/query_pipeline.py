@@ -6,8 +6,6 @@ from __future__ import annotations
 from music_rag import config
 from music_rag import embedder
 from music_rag import retriever
-from music_rag import audio
-from music_rag import audio_source
 from music_rag import llm
 
 
@@ -18,6 +16,10 @@ def answer_query(query: str, top_k: int = config.TOP_K,
 
     audio_desc = None                                    # step3: 音声（任意。ローカルパス or URL）
     if audio_path:
+        # librosa 等の重い依存をテキスト経路に持ち込まないため、ここで import する
+        # （テキストのみの軽量デプロイでは audio/librosa 自体がインストールされない）
+        from music_rag import audio, audio_source
+
         local_path = audio_source.resolve(audio_path)    # URL なら一時ファイルに解決
         try:
             audio_desc = audio.describe(audio.analyze(local_path))

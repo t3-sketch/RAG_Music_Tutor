@@ -10,7 +10,7 @@ main.py が期待するインターフェース:
     upsert(chunks, vectors) -> {"ingested": int, "source": str}
         chunks:  [{"text","source","chunk_index"}, ...]（ingest.chunk の出力）
         vectors: [[float, ...], ...]（embedder.embed_documents の出力, 1024次元）
-    search(query_vector, top_k) -> [{"text","source","score"}, ...]
+    search(query_vector, top_k) -> [{"text","source","chunk_index","score"}, ...]
 """
 from __future__ import annotations
 
@@ -125,6 +125,9 @@ def search(
             {
                 "text": payload.get("text", ""),
                 "source": payload.get("source", ""),
+                # チャンク単位の追跡用（MLOps trace / eval のドリルダウンで
+                # 「記事のどこが引かれたか」を特定する。upsert時から全payloadに存在）
+                "chunk_index": payload.get("chunk_index"),
                 "score": float(point.score),
                 # 出典表示用メタ（旧ポイントには無いのでNone → UI側でフォールバック）
                 "heading": payload.get("heading"),
