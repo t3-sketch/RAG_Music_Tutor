@@ -4,17 +4,20 @@ snapshot restoreではなくscroll→upsertを使う（バージョン非依存�
 再実行は冪等（point ID保持のためupsertが上書きになる）。
 
 実行（repoルートから）:
-    uv run python scripts/copy_collection.py \
-        --dest-url https://xxx.cloud.qdrant.io:6333 \
-        --dest-api-key <key> \
-        [--collection music_theory_open] [--src-url http://localhost:6333]
+    # .env に QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY を書いていれば引数不要:
+    uv run python scripts/copy_collection.py [--collection music_theory_open]
 
---dest-api-key は環境変数 QDRANT_CLOUD_API_KEY でも指定可。
+    # 明示指定する場合（引数は .env より優先）:
+    uv run python scripts/copy_collection.py \
+        --dest-url https://xxx.aws.cloud.qdrant.io \
+        --dest-api-key <key> [--src-url http://localhost:6333]
+
+--dest-url / --dest-api-key は .env（config.QDRANT_CLOUD_URL /
+QDRANT_CLOUD_API_KEY）を既定値に使う。URL は :6333 を付けない（Cloud は 443/https）。
 """
 from __future__ import annotations
 
 import argparse
-import os
 
 from qdrant_client import QdrantClient, models
 
@@ -61,13 +64,21 @@ def copy_collection(src: QdrantClient, dest: QdrantClient, collection: str) -> i
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument("--collection", default=config.OPEN_COLLECTION)
-    parser.add_argument("--src-url", default="http://localhost:6333")
-    parser.add_argument("--dest-url", required=True)
-    parser.add_argument("--dest-api-key",
-                        default=os.getenv("QDRANT_CLOUD_API_KEY"))
+    parser.add_argument("--src-url", default=config.QDRANT_URL)
+    parser.add_argument("--dest-url", default=config.QDRANT_CLOUD_URL)
+    parser.add_argument("--dest-api-key", default=config.QDRANT_CLOUD_API_KEY)
     args = parser.parse_args()
+
+    if not args.dest_url:
+        parser.error(
+            "コピー先URLが未指定です。--dest-url を渡すか、"
+            ".env に QDRANT_CLOUD_URL を設定してください。"
+        )
 
     src = QdrantClient(url=args.src_url)
     dest = QdrantClient(url=args.dest_url, api_key=args.dest_api_key)

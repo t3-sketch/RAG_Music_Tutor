@@ -34,6 +34,12 @@ COLLECTION_NAME = COLLECTIONS[CHUNK_STRATEGY]
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY") or None
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", COLLECTION_NAME)
+
+# Qdrant Cloud（マネージド）へのコピー先。scripts/copy_collection.py が参照する。
+# ローカルQdrant → Cloud への公開用collection転送でのみ使い、本番の検索経路
+# （QDRANT_URL）とは分離する。URL は :6333 を付けない（Cloud は 443/https 受け）。
+QDRANT_CLOUD_URL = os.getenv("QDRANT_CLOUD_URL") or None
+QDRANT_CLOUD_API_KEY = os.getenv("QDRANT_CLOUD_API_KEY") or None
 # オープンcorpus用collection（SoundQuest系collectionとは分離してA/B比較可能に保つ）
 OPEN_COLLECTION = os.getenv("OPEN_COLLECTION", "music_theory_open")
 # BGE-M3 の dense ベクトル次元。collection 作成時の次元と必ず一致させる。
