@@ -40,8 +40,10 @@ jobs:
           # 書いただけでは `git add` がフィルタを再適用しない（内容不変と判定される）。
           # git lfs track で属性を設定し、git add --renormalize で既存ファイルを
           # 強制的にLFSポインタへ変換する（HFは10MB超の非LFSファイルを拒否するため必須）。
+          # HF は .pt などの大容量だけでなく、pngなどのバイナリ全般をLFS/Xet管理下に
+          # 置くことを要求する（10MB未満でも拒否）。リポジトリ内のバイナリ拡張子を網羅する。
           git checkout --orphan hf-deploy
-          git lfs track "*.pt"
+          git lfs track "*.pt" "*.png" "*.jpg" "*.jpeg" "*.gif"
           git add -A
           git add --renormalize .
           git commit -m "Deploy snapshot from ${GITHUB_SHA::7}"
