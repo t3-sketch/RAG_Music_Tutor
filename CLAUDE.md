@@ -28,7 +28,7 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 
 | レイヤー | 技術 | 備考 |
 | --- | --- | --- |
-| Embeddings | BGE-M3 | dense 1024次元。`EMBED_BACKEND` で `local`(FlagEmbedding・既定) / `deepinfra`(同一モデルのホスト型API) を切替。NVIDIA Build の bge-m3 はサーバー側500で不可。ハイブリッド検索は将来課題 |
+| Embeddings | BGE-M3 | dense 1024次元。FlagEmbedding でローカル実行（`EMBED_BACKEND=local`・既定）。`nvidia`（同一モデルのホスト型API）は bge-m3 がサーバー側500のため復旧待ちの予備経路。DeepInfra経路は2026-07-13に削除済み（HF Spacesはroot requirements.txtでtorch込みデプロイのため不要と判明）。ハイブリッド検索は将来課題 |
 | Vector DB | Qdrant | ローカルは Docker（bind mount: `data/qdrant/`）、公開デモは Qdrant Cloud |
 | 生成層 LLM | NVIDIA Build (`meta/llama-3.3-70b-instruct`) | `llm.py` 経由（OpenAI互換API。`config.NVIDIA_LLM_MODEL`）。Gemini無料枠のRPD枯渇回避のため移行。Claude APIはMVPでは不使用 |
 | 評価 | RAGAS 0.4.3 | judge: Gemini `gemini-3.1-flash-lite`（`config.GEMINI_MODEL`。生成層とは別プロバイダに分離しbias回避）。langchain-community==0.3.27 ピン留め必須 |

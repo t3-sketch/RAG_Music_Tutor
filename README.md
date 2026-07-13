@@ -48,7 +48,7 @@ short_description: 日本語の音楽理論教材を根拠に出典つきで答�
 | 音声入力 | ファイルアップロードは有効。URL入力（yt-dlp）は利用規約配慮で無効（`ENABLE_URL_INPUT=false`） |
 
 - **埋め込みバックエンドは差し替え可能**（`EMBED_BACKEND`）: `local`（既定・自前実行）/
-  `deepinfra`（同一モデル BAAI/bge-m3 のホスト型API。torch を積みたくない軽量ホスト向け）。
+  `nvidia`（同一モデル BAAI/bge-m3 のホスト型API。現在サーバー側障害のため予備経路）。
   どちらも同一モデルなのでベクトル空間は共通で、コーパスの再構築は不要です
   （パリティ検証: `scripts/check_embed_parity.py`）。
 - **生成と評価 judge はプロバイダごと分離**: 生成は NVIDIA、RAGAS の judge は Gemini
@@ -240,8 +240,8 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 - **UI**: Streamlit（公開デモは Hugging Face Spaces / Streamlit SDK）
 - **取り込みパイプラインの動作検証用**: FastAPI + Inngest
 - **ベクトルDB**: Qdrant（ローカルは Docker、公開デモは Qdrant Cloud。cosine, 1024 次元）
-- **埋め込み**: BGE-M3（dense 1024 次元。`EMBED_BACKEND` で `local`＝FlagEmbedding 自前実行 /
-  `deepinfra`＝同一モデルのホスト型API を切替。将来 sparse/hybrid に拡張可能）
+- **埋め込み**: BGE-M3（dense 1024 次元。FlagEmbedding で自前実行。
+  将来 sparse/hybrid に拡張可能）
 - **生成**: NVIDIA Build（`meta/llama-3.3-70b-instruct`、OpenAI互換API）
 - **評価**: hit-rate@k / MRR（自作）+ RAGAS 0.4（judge は Gemini `gemini-3.1-flash-lite` に分離）
 - **音響解析**: librosa（テンポ・キー）+ BTC-ISMIR19（コード認識、large_voca）
@@ -268,7 +268,6 @@ cp .env.example .env
 #   NVIDIA_API_KEY   … 生成層（必須）
 #   GEMINI_API_KEY   … RAGAS 評価を回す場合のみ（judge 用）
 #   任意:
-#   EMBED_BACKEND=deepinfra + DEEPINFRA_API_KEY … リモート埋め込みを使う場合
 #   QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY      … Cloud へ collection を転送する場合
 ```
 

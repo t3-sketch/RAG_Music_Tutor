@@ -62,20 +62,12 @@ NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 NVIDIA_LLM_MODEL = os.getenv("NVIDIA_LLM_MODEL", "meta/llama-3.3-70b-instruct")
 # NVIDIA Build の baai/bge-m3 は現在サーバー側500で使用不可（2026-07確認）。
-# リモート埋め込みは DeepInfra（下）を使う。この値は将来復旧時のA/B用に残す。
+# この値は将来復旧時のリモート埋め込み用に残す。
 NVIDIA_EMBED_MODEL = os.getenv("NVIDIA_EMBED_MODEL", "baai/bge-m3")
 
-# --- DeepInfra（OpenAI互換API。リモート埋め込みで使用）---
-# 同一モデル BAAI/bge-m3 をホストしており、localで埋め込んだcorpusと
-# ベクトル空間が一致する（再ingest不要）。torch不要の軽量デプロイ用。
-DEEPINFRA_API_KEY = os.getenv("DEEPINFRA_API_KEY", "")
-DEEPINFRA_BASE_URL = os.getenv("DEEPINFRA_BASE_URL", "https://api.deepinfra.com/v1/openai")
-DEEPINFRA_EMBED_MODEL = os.getenv("DEEPINFRA_EMBED_MODEL", "BAAI/bge-m3")
-
 # クエリ埋め込みのバックエンド。
-# local    = FlagEmbedding（既定・ingestと同一経路。torchを使う）
-# deepinfra = DeepInfra がホストする同一モデル BAAI/bge-m3 のAPI呼び出し（デプロイ用）
-# nvidia   = NVIDIA Build（現在 bge-m3 が500のため実質不可。復旧時用に経路のみ保持）
+# local  = FlagEmbedding（既定・ingestと同一経路。torchを使う）
+# nvidia = NVIDIA Build（現在 bge-m3 が500のため実質不可。復旧時用に経路のみ保持）
 EMBED_BACKEND = os.getenv("EMBED_BACKEND", "local")
 
 # --- チャンク分割（文字数ベース。日本語教材を想定）---

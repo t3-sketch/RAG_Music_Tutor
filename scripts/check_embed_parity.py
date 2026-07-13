@@ -1,15 +1,17 @@
-"""local(FlagEmbedding) と リモート(DeepInfra / NVIDIA) の bge-m3 埋め込みパリティ検証。
+"""local(FlagEmbedding) と リモート(NVIDIA Build) の bge-m3 埋め込みパリティ検証。
 
-デプロイでクエリ埋め込みだけ リモートバックエンドに切り替える前提
-（corpus は local で埋め込み済み）なので、両者のベクトルが実用上一致する
+クエリ埋め込みだけ リモートバックエンドに切り替える場合
+（corpus は local で埋め込み済み）、両者のベクトルが実用上一致する
 ことがゲート条件になる。合格基準:
 - 同一テキストの cosine 類似度 >= 0.99（サービング差で厳密1.0は期待しない）
 - Qdrant top-5 検索の (source, chunk_index) 重なり >= 4/5、かつ top-1 一致
 
-実行（repoルートから。対象バックエンドのAPIキーが必要）:
-    uv run python scripts/check_embed_parity.py [collection] [backend]
+NVIDIA Build の bge-m3 は現在サーバー側500で使用不可（2026-07確認）。
+このスクリプトは復旧時のゲート検証用に残す。
+
+実行（repoルートから。NVIDIA_API_KEY が必要）:
+    uv run python scripts/check_embed_parity.py [collection]
 - collection 省略時は config.OPEN_COLLECTION（music_theory_open）。
-- backend 省略時は deepinfra（他に nvidia を指定可）。
 """
 from __future__ import annotations
 
@@ -18,8 +20,8 @@ import sys
 
 from music_rag import config, embedder, retriever
 
-# 比較対象のリモートバックエンド（argvで上書き可）。DeepInfraを既定にする。
-REMOTE_BACKEND = "deepinfra"
+# 比較対象のリモートバックエンド
+REMOTE_BACKEND = "nvidia"
 
 # 埋め込みパリティ用テキスト（コーパスの語彙に近い日本語）
 TEXTS = [
@@ -63,17 +65,12 @@ def embed_both(texts: list[str], backend: str) -> tuple[list[list[float]], list[
     return local_vecs, remote_vecs
 
 
-def _remote_key(backend: str) -> str:
-    return config.DEEPINFRA_API_KEY if backend == "deepinfra" else config.NVIDIA_API_KEY
-
-
 def main() -> int:
     collection = sys.argv[1] if len(sys.argv) > 1 else config.OPEN_COLLECTION
-    backend = sys.argv[2] if len(sys.argv) > 2 else REMOTE_BACKEND
+    backend = REMOTE_BACKEND
 
-    if not _remote_key(backend):
-        env_name = "DEEPINFRA_API_KEY" if backend == "deepinfra" else "NVIDIA_API_KEY"
-        print(f"{env_name} が未設定です（.env に追加してください）")
+    if not config.NVIDIA_API_KEY:
+        print("NVIDIA_API_KEY が未設定です（.env に追加してください）")
         return 1
 
     ok = True

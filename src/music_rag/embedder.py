@@ -6,13 +6,11 @@
   （JSON シリアライズ境界＝Inngest step をまたぐため）。
 
 バックエンドは config.EMBED_BACKEND で切替:
-- local     : FlagEmbedding（既定。ingest と同一経路。torch を使う）
-- deepinfra : DeepInfra がホストする同一モデル BAAI/bge-m3 の OpenAI互換API。
-              torch 不要の軽量デプロイ用。ベクトル空間は local と共有
-              （同一モデルのため。パリティは scripts/check_embed_parity.py で検証）。
-- nvidia    : NVIDIA Build の同一モデル（現在 bge-m3 が500で使用不可。経路のみ保持）。
-
-deepinfra / nvidia はどちらも OpenAI互換の /embeddings なので共通経路で扱う。
+- local  : FlagEmbedding（既定。ingest と同一経路。torch を使う）
+- nvidia : NVIDIA Build の同一モデル BAAI/bge-m3 の OpenAI互換API
+           （現在 bge-m3 が500で使用不可。復旧時用に経路のみ保持。
+           ベクトル空間は local と共有＝同一モデルのため。
+           パリティは scripts/check_embed_parity.py で検証）。
 
 main.py が期待するインターフェース:
     embed_query(text: str) -> list[float]                  # 1024 次元
@@ -51,12 +49,10 @@ def _remote_client(base_url: str, api_key: str):
 
 
 def _remote_params() -> tuple[str, str, str, dict]:
-    """現在のバックエンドの (base_url, api_key, model, extra_body) を返す。"""
-    if config.EMBED_BACKEND == "deepinfra":
-        return (config.DEEPINFRA_BASE_URL, config.DEEPINFRA_API_KEY,
-                config.DEEPINFRA_EMBED_MODEL, {})
-    # nvidia（bge-m3 は現在500。復旧時用に経路のみ保持）。
-    # truncate=END で 8192 token 超の入力だけ安全に切る。
+    """リモートバックエンド（nvidia）の (base_url, api_key, model, extra_body) を返す。
+
+    truncate=END で 8192 token 超の入力だけ安全に切る。
+    """
     return (config.NVIDIA_BASE_URL, config.NVIDIA_API_KEY,
             config.NVIDIA_EMBED_MODEL, {"truncate": "END"})
 
@@ -73,7 +69,7 @@ def _encode_dense_local(texts: list[str]) -> list[list[float]]:
 
 
 def _encode_dense_remote(texts: list[str]) -> list[list[float]]:
-    """OpenAI互換の /embeddings（DeepInfra / NVIDIA）で埋め込む。入力順を保って返す。
+    """OpenAI互換の /embeddings（NVIDIA Build）で埋め込む。入力順を保って返す。
 
     bge-m3 は instruction 不要の対称モデルなので input_type は付けない。
     """
@@ -94,7 +90,7 @@ def _encode_dense_remote(texts: list[str]) -> list[list[float]]:
 
 
 def _encode_dense(texts: list[str]) -> list[list[float]]:
-    if config.EMBED_BACKEND in ("deepinfra", "nvidia"):
+    if config.EMBED_BACKEND == "nvidia":
         return _encode_dense_remote(texts)
     return _encode_dense_local(texts)
 
