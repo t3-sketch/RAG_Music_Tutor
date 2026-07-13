@@ -61,14 +61,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 NVIDIA_LLM_MODEL = os.getenv("NVIDIA_LLM_MODEL", "meta/llama-3.3-70b-instruct")
-# NVIDIA Build の baai/bge-m3 は現在サーバー側500で使用不可（2026-07確認）。
-# この値は将来復旧時のリモート埋め込み用に残す。
-NVIDIA_EMBED_MODEL = os.getenv("NVIDIA_EMBED_MODEL", "baai/bge-m3")
-
-# クエリ埋め込みのバックエンド。
-# local  = FlagEmbedding（既定・ingestと同一経路。torchを使う）
-# nvidia = NVIDIA Build（現在 bge-m3 が500のため実質不可。復旧時用に経路のみ保持）
-EMBED_BACKEND = os.getenv("EMBED_BACKEND", "local")
 
 # --- チャンク分割（文字数ベース。日本語教材を想定）---
 CHUNK_CHARS = 800

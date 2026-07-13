@@ -43,14 +43,9 @@ short_description: 日本語の音楽理論教材を根拠に出典つきで答�
 | 層 | 公開デモでの構成 |
 | --- | --- |
 | 検索先 | Qdrant Cloud（`music_theory_open` = オープンライセンス教材） |
-| 埋め込み | ローカル BGE-M3（`EMBED_BACKEND=local`。Space 内で実行） |
+| 埋め込み | ローカル BGE-M3（FlagEmbedding。Space 内で実行） |
 | 生成 | NVIDIA Build（`meta/llama-3.3-70b-instruct`、OpenAI互換API） |
 | 音声入力 | ファイルアップロードは有効。URL入力（yt-dlp）は利用規約配慮で無効（`ENABLE_URL_INPUT=false`） |
-
-- **埋め込みバックエンドは差し替え可能**（`EMBED_BACKEND`）: `local`（既定・自前実行）/
-  `nvidia`（同一モデル BAAI/bge-m3 のホスト型API。現在サーバー側障害のため予備経路）。
-  どちらも同一モデルなのでベクトル空間は共通で、コーパスの再構築は不要です
-  （パリティ検証: `scripts/check_embed_parity.py`）。
 - **生成と評価 judge はプロバイダごと分離**: 生成は NVIDIA、RAGAS の judge は Gemini
   （`gemini-3.1-flash-lite`）。self-preference bias を避けつつ、無料枠の
   レート制限（Gemini の RPD 枯渇）を評価と本番で独立させています。
