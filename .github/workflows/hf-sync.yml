@@ -36,9 +36,14 @@ jobs:
           git config user.name "github-actions"
 
           # 現在のツリーだけをorphanコミット化し、*.pt を LFS で格納してから push。
+          # 注意: 既存の *.pt は通常blobとしてindexに載っているため、.gitattributes を
+          # 書いただけでは `git add` がフィルタを再適用しない（内容不変と判定される）。
+          # git lfs track で属性を設定し、git add --renormalize で既存ファイルを
+          # 強制的にLFSポインタへ変換する（HFは10MB超の非LFSファイルを拒否するため必須）。
           git checkout --orphan hf-deploy
-          printf '*.pt filter=lfs diff=lfs merge=lfs -text\n' > .gitattributes
+          git lfs track "*.pt"
           git add -A
+          git add --renormalize .
           git commit -m "Deploy snapshot from ${GITHUB_SHA::7}"
 
           user="${HF_SPACE%%/*}"
