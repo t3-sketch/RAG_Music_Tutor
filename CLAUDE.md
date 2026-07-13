@@ -28,10 +28,11 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 
 | レイヤー | 技術 | 備考 |
 | --- | --- | --- |
-| Embeddings | BGE-M3 (FlagEmbedding) | dense 1024次元。ハイブリッド検索（sparse+dense）は将来課題 |
-| Vector DB | Qdrant | Docker、bind mount: `data/qdrant/` |
-| 生成層 LLM | Gemini (`gemini-3.5-flash`) | `llm.py` 経由（`config.GEMINI_MODEL`、env `GEMINI_MODEL` で上書き可）。Claude APIはMVPでは不使用 |
-| 評価 | RAGAS 0.4.3 | judge: `gemini-3.1-flash-lite`。langchain-community==0.3.27 ピン留め必須 |
+| Embeddings | BGE-M3 | dense 1024次元。`EMBED_BACKEND` で `local`(FlagEmbedding・既定) / `deepinfra`(同一モデルのホスト型API) を切替。NVIDIA Build の bge-m3 はサーバー側500で不可。ハイブリッド検索は将来課題 |
+| Vector DB | Qdrant | ローカルは Docker（bind mount: `data/qdrant/`）、公開デモは Qdrant Cloud |
+| 生成層 LLM | NVIDIA Build (`meta/llama-3.3-70b-instruct`) | `llm.py` 経由（OpenAI互換API。`config.NVIDIA_LLM_MODEL`）。Gemini無料枠のRPD枯渇回避のため移行。Claude APIはMVPでは不使用 |
+| 評価 | RAGAS 0.4.3 | judge: Gemini `gemini-3.1-flash-lite`（`config.GEMINI_MODEL`。生成層とは別プロバイダに分離しbias回避）。langchain-community==0.3.27 ピン留め必須 |
+| デプロイ | Hugging Face Spaces (Streamlit SDK, 無料CPU) | `main` push で GitHub Actions が同期。オープンコーパス版(`music_theory_open`)を公開。URL入力はオフ |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
 | UI | Streamlit (`apps/streamlit_app.py`) |  |
 | 音響解析 | librosa + BTC-ISMIR19 (large_voca) | `src/music_rag/model/` 配下にvendoring済み（MIT） |

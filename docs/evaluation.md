@@ -4,6 +4,9 @@
 - structure: `music_theory_structure`（構造ベースchunking、RAGAS 2026-07-02実施）
 - n=20問（silver Q&Aセット）、judge: gemini-3.1-flash-lite、生成層: gemini-3.5-flash
   （self-preference bias回避のため judge と生成層は別モデル）
+  ※ この記録は当時の構成での実測。その後、生成層は NVIDIA Build（`meta/llama-3.3-70b-instruct`）へ
+  移行済み（Gemini無料枠のRPD枯渇回避）。judge は bias 回避のため引き続き Gemini 側。
+  下表の数値は上記日付時点の chunking A/B 比較記録として保持している。
 
 検索層の評価は「hit-rate@k / MRR（LLM不使用・常用）」と「RAGAS（LLM judge・節目のみ）」の2層構成。
 

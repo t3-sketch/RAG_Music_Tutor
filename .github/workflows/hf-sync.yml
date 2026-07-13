@@ -1,0 +1,45 @@
+name: Sync to Hugging Face Space
+
+# GitHub を source of truth とし、main への push ごとに HF Space へ反映する。
+# HF は 10MB 超の非LFSファイルを拒否するため（BTCの重みが12MB）、履歴ごとではなく
+# 「現在のツリーだけのorphanスナップショット」を作り *.pt を LFS 化して force-push する。
+# これにより GitHub 側の履歴は一切書き換えない。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Push snapshot to HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}   # 例: your-username/music-rag
+        run: |
+          set -euo pipefail
+          if [ -z "${HF_SPACE:-}" ]; then
+            echo "リポジトリ変数 HF_SPACE が未設定です（例: your-username/music-rag）"; exit 1
+          fi
+          if [ -z "${HF_TOKEN:-}" ]; then
+            echo "シークレット HF_TOKEN が未設定です（HFのWriteトークン）"; exit 1
+          fi
+
+          git lfs install
+          git config user.email "actions@github.com"
+          git config user.name "github-actions"
+
+          # 現在のツリーだけをorphanコミット化し、*.pt を LFS で格納してから push。
+          git checkout --orphan hf-deploy
+          printf '*.pt filter=lfs diff=lfs merge=lfs -text\n' > .gitattributes
+          git add -A
+          git commit -m "Deploy snapshot from ${GITHUB_SHA::7}"
+
+          user="${HF_SPACE%%/*}"
+          git push --force "https://${user}:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" hf-deploy:main

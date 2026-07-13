@@ -3,11 +3,13 @@
 # entrypoint（apps/streamlit_app.py）と同じディレクトリに置くことで、
 # Community Cloud がルートの uv.lock（torch等の重量依存込み）より優先して拾う。
 #
-# 生成層・埋め込み（EMBED_BACKEND=nvidia時）とも NVIDIA Build（openai互換API）
-# 経由になったため、google-genai は不要（RAGAS評価専用・experiments側のみで使用）。
+# 生成層は NVIDIA Build、埋め込みは DeepInfra（EMBED_BACKEND=deepinfra時）と、
+# どちらも openai互換API 経由なので google-genai は不要
+# （RAGAS評価専用・experiments側のみで使用）。
 #
 # デプロイ時の環境変数（Secrets）:
-#   EMBED_BACKEND=nvidia          ← クエリ埋め込みを NVIDIA API に（torch不要）
+#   EMBED_BACKEND=deepinfra       ← クエリ埋め込みを DeepInfra API に（torch不要）
+#   DEEPINFRA_API_KEY=...         ← DeepInfra のキー
 #   ENABLE_AUDIO_INPUT=false      ← 音声経路を無効化（librosa不要）
 #   ENABLE_URL_INPUT=false
 streamlit

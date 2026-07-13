@@ -1,11 +1,26 @@
+---
+title: Music RAG
+emoji: 🎵
+colorFrom: indigo
+colorTo: purple
+sdk: streamlit
+sdk_version: 1.58.0
+app_file: apps/streamlit_app.py
+python_version: "3.11"
+pinned: false
+short_description: 日本語の音楽理論教材を根拠に出典つきで答えるRAG
+---
+
 # music-rag
 
 日本語の音楽理論教材コーパスを根拠に、コード進行・メロディ・リズムに関する質問へ日本語で解説する RAG システムです。
-ユーザーの質問（＋任意で楽曲の音響特徴）に対し、教材から関連箇所を検索し、それを根拠に Gemini が解説を生成します。
+ユーザーの質問（＋任意で楽曲の音響特徴）に対し、教材から関連箇所を検索し、それを根拠に LLM が解説を生成します。
 
-> 個人利用・研究用プロジェクトです。教材コーパス（SoundQuest / soundquest.jp）の著作権は原著者に帰属します。
-> 利用許諾を権利者へ打診中であり、許諾が確認できるまで公開デプロイは行いません。
-> 上記の理由から、教材コーパス本体（`data/`）はこのリポジトリに含めていません。
+> **コーパスの2系統**:
+> - **ローカル/フル版**: SoundQuest（soundquest.jp）の記事コーパス。著作権は原著者に帰属し、利用許諾を打診中のため**公開デプロイには使いません**（コーパス本体 `data/` もリポジトリ非同梱）。
+> - **公開デモ版**: オープンライセンス教材（Open Music Theory 等）のコーパス（Qdrant `music_theory_open`）。権利上問題なく共有できるため、**公開デモ（Hugging Face Spaces）はこちらを検索対象**にしています。
+>
+> コードとアーキテクチャは両系統で共通で、`QDRANT_COLLECTION` で検索先を切り替えるだけです。
 
 ---
 
@@ -15,6 +30,30 @@
 > 解説の出典となった教材を併記します。
 
 ![demo](docs/demo.png)
+
+---
+
+## 公開デモ（デプロイ構成）
+
+公開デモは **Hugging Face Spaces（Streamlit SDK, 無料CPU）** にデプロイしています。
+無料CPU枠でも約16GB RAM あり、埋め込み（BGE-M3）・音響解析（librosa + BTC）を含めた
+全処理を Space 内で実行できます。GitHub の `main` への push で
+[GitHub Actions](.github/workflows/hf-sync.yml) が自動で Space へ反映します。
+
+| 層 | 公開デモでの構成 |
+| --- | --- |
+| 検索先 | Qdrant Cloud（`music_theory_open` = オープンライセンス教材） |
+| 埋め込み | ローカル BGE-M3（`EMBED_BACKEND=local`。Space 内で実行） |
+| 生成 | NVIDIA Build（`meta/llama-3.3-70b-instruct`、OpenAI互換API） |
+| 音声入力 | ファイルアップロードは有効。URL入力（yt-dlp）は利用規約配慮で無効（`ENABLE_URL_INPUT=false`） |
+
+- **埋め込みバックエンドは差し替え可能**（`EMBED_BACKEND`）: `local`（既定・自前実行）/
+  `deepinfra`（同一モデル BAAI/bge-m3 のホスト型API。torch を積みたくない軽量ホスト向け）。
+  どちらも同一モデルなのでベクトル空間は共通で、コーパスの再構築は不要です
+  （パリティ検証: `scripts/check_embed_parity.py`）。
+- **生成と評価 judge はプロバイダごと分離**: 生成は NVIDIA、RAGAS の judge は Gemini
+  （`gemini-3.1-flash-lite`）。self-preference bias を避けつつ、無料枠の
+  レート制限（Gemini の RPD 枯渇）を評価と本番で独立させています。
 
 ---
 
@@ -38,10 +77,11 @@
 
 ## 現状（MVP）
 
-- **コーパス**: SoundQuest の一般公開記事 162 本を取り込み済みです（Qdrant `music_theory_structure` に 2,355 points、構造ベース chunking）。
-  登録済みアカウント限定の記事 29 本は権利配慮のため除外しています（`scripts/check_gated.py` で検出）。
-- **検索・生成**: 質問 → embed → search → generate の E2E が動作します。Streamlit UI（`apps/streamlit_app.py`）から利用できます。
-- **音響解析**: ローカル音源のテンポ・キー・コード進行を解析し（BTC-ISMIR19、フォールバックはテンプレートマッチング）、解析結果を根拠に加えた解説を生成します。
+- **コーパス**: 2 系統。
+  - フル版（ローカル）: SoundQuest の一般公開記事 162 本（Qdrant `music_theory_structure` に 2,355 points、構造ベース chunking）。会員限定記事 29 本は権利配慮のため除外（`scripts/check_gated.py` で検出）。
+  - 公開デモ版: オープンライセンス教材コーパス（Qdrant `music_theory_open`）。権利上共有できるため公開デモの検索対象。
+- **検索・生成**: 質問 → embed → search → generate の E2E が動作します。Streamlit UI（`apps/streamlit_app.py`）から利用でき、公開デモは Hugging Face Spaces で稼働します。
+- **音響解析**: 音源のテンポ・キー・コード進行を解析し（BTC-ISMIR19、フォールバックはテンプレートマッチング）、解析結果を根拠に加えた解説を生成します。
 - **評価基盤**: hit-rate@k / MRR（常用）と RAGAS 5 指標（節目のみ）の 2 層評価。20 問の Q&A セットで chunking 戦略の A/B 比較を実施済みです（下記）。
 
 ---
@@ -49,7 +89,9 @@
 ## 評価と改善の記録
 
 検索層は **hit-rate@k / MRR（LLM 不使用・常時実行可能）** と **RAGAS（LLM judge・節目のみ）** の 2 層で評価しています。
-生成層（gemini-3.5-flash）と評価 judge（gemini-3.1-flash-lite）は、self-preference bias を避けるため意図的に別モデルにしています。
+生成層と評価 judge は、self-preference bias を避けるため意図的に別プロバイダにしています
+（現行: 生成 = NVIDIA `meta/llama-3.3-70b-instruct`、judge = Gemini `gemini-3.1-flash-lite`）。
+なお下表の A/B 実測（2026-07）は当時の生成層 `gemini-3.5-flash` で取得した記録です（[docs/evaluation.md](docs/evaluation.md)）。
 
 ### chunking 戦略の A/B 比較（n=20、2026-07）
 
@@ -111,13 +153,13 @@ flowchart TD
         embedder[embedder.py<br/>BGE-M3]
         retriever[retriever.py<br/>Qdrant]
         audio[audio.py<br/>librosa + BTC-ISMIR19]
-        llm[llm.py<br/>Gemini]
+        llm[llm.py<br/>NVIDIA Build]
     end
 
     subgraph ext["外部"]
         SQ[(SoundQuest)]
         QD[(Qdrant)]
-        GM[Gemini API]
+        GM[NVIDIA Build API]
     end
 
     ING --> RI
@@ -175,7 +217,7 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 │   ├── ingest.py             #   スクレイプ + チャンク分割（fixed / structure の 2 戦略）
 │   ├── embedder.py           #   BGE-M3 埋め込み（dense 1024 次元）
 │   ├── retriever.py          #   Qdrant upsert / search
-│   ├── llm.py                #   Gemini による解説生成
+│   ├── llm.py                #   LLM による解説生成（NVIDIA Build / OpenAI互換API）
 │   ├── audio.py              #   音響解析（テンポ・キー・コード進行）
 │   ├── audio_source.py       #   音声URL入力の解決レイヤー（YouTube / ニコニコ → 一時ファイル）
 │   └── model/                #   BTC-ISMIR19 vendoring（コード認識モデル）
@@ -195,12 +237,13 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 
 ## 技術スタック
 
-- **UI**: Streamlit
+- **UI**: Streamlit（公開デモは Hugging Face Spaces / Streamlit SDK）
 - **取り込みパイプラインの動作検証用**: FastAPI + Inngest
-- **ベクトルDB**: Qdrant（Docker, cosine, 1024 次元）
-- **埋め込み**: BGE-M3 via FlagEmbedding（dense。将来 sparse/hybrid に拡張可能）
-- **生成**: Gemini API（評価 judge は別モデルに分離）
-- **評価**: hit-rate@k / MRR（自作）+ RAGAS 0.4
+- **ベクトルDB**: Qdrant（ローカルは Docker、公開デモは Qdrant Cloud。cosine, 1024 次元）
+- **埋め込み**: BGE-M3（dense 1024 次元。`EMBED_BACKEND` で `local`＝FlagEmbedding 自前実行 /
+  `deepinfra`＝同一モデルのホスト型API を切替。将来 sparse/hybrid に拡張可能）
+- **生成**: NVIDIA Build（`meta/llama-3.3-70b-instruct`、OpenAI互換API）
+- **評価**: hit-rate@k / MRR（自作）+ RAGAS 0.4（judge は Gemini `gemini-3.1-flash-lite` に分離）
 - **音響解析**: librosa（テンポ・キー）+ BTC-ISMIR19（コード認識、large_voca）
 - **言語/環境**: Python 3.11（conda + uv、src layout パッケージ）
 
@@ -220,7 +263,13 @@ uv sync
 docker compose up -d
 
 # 3) .env を作成（雛形: .env.example）
-cp .env.example .env   # GEMINI_API_KEY を記入
+cp .env.example .env
+#   最低限:
+#   NVIDIA_API_KEY   … 生成層（必須）
+#   GEMINI_API_KEY   … RAGAS 評価を回す場合のみ（judge 用）
+#   任意:
+#   EMBED_BACKEND=deepinfra + DEEPINFRA_API_KEY … リモート埋め込みを使う場合
+#   QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY      … Cloud へ collection を転送する場合
 ```
 
 > コマンドはすべてリポジトリルートから実行してください（データパスは `./data` 基準です。
@@ -259,13 +308,15 @@ CHUNK_STRATEGY=fixed uv run streamlit run apps/streamlit_app.py   # 旧chunking�
 - ~~生成品質の評価~~: RAGAS 5 指標評価を chunking A/B の節目で実施
 - ~~音声入力~~: アップロード音源の解析（librosa + BTC-ISMIR19）と解説生成への接続
 - ~~音声URL入力~~: YouTube / ニコニコ動画URLからの解析（yt-dlp。ローカル個人利用限定の機能で、公開デプロイ時は `ENABLE_URL_INPUT=false` で無効化）
+- ~~公開デプロイ~~: Hugging Face Spaces（Streamlit SDK, 無料CPU）へオープンライセンスコーパス版を公開。生成は NVIDIA Build、検索は Qdrant Cloud、埋め込み・音響解析は Space 内で実行。`main` への push で GitHub Actions が自動反映。
+- ~~生成層のプロバイダ移行~~: Gemini 無料枠の RPD 枯渇を避けるため生成を NVIDIA Build に移行。RAGAS judge は bias 回避のため Gemini 側に分離。
 
 今後:
 
 - **hybrid / sparse 検索**: BGE-M3 のフラグ切り替えで sparse ベクトルを有効化します。度数表記の比較質問（評価で残った弱点）への対策です。
-- **LLM モデルの柔軟性**: ユーザーが好みのモデルを選択できるようにします。
+- **LLM モデルの柔軟性**: ユーザーが好みのモデルを選択できるようにします（生成層は既に OpenAI 互換API化済みで下地はあります）。
 - **メロディ解析（F0）・セグメント分割**: 音響解析の拡張です。
-- **デプロイ**: 権利者の許諾確認後に行います（Dockerfile はビルド検証まで準備済み）。
+- **SoundQuest 版の公開**: 権利者の許諾確認後に、フル版（SoundQuest コーパス）の公開可否を判断します。
 
 ---
 

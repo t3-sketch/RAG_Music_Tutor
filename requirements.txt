@@ -1,0 +1,22 @@
+# Hugging Face Spaces（Streamlit SDK）用のランタイム依存。
+# ローカル開発は uv sync（pyproject.toml）を使うこと。これはHFデプロイ専用。
+#
+# torch は audio解析(BTC) と 埋め込み(FlagEmbedding=ローカルBGE-M3) の両方で必須。
+# HFは無料CPU Space想定なので CPU wheel を優先（巨大なCUDA一式を避ける）。
+# 生成は NVIDIA Build（openai互換）、検索は Qdrant Cloud。
+# URL入力(yt-dlp)は公開版オフのため依存に含めない。
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+streamlit>=1.58.0
+qdrant-client>=1.18.0
+openai>=2
+tenacity>=9.1.4
+python-dotenv>=1.2.2
+
+# ローカル埋め込み（BGE-M3）
+FlagEmbedding>=1.4.0
+torch>=2.2
+
+# 音声解析（librosa + BTC。BTCの重みはリポジトリ同梱の12MB .pt）
+librosa>=0.11.0
+soundfile>=0.12
