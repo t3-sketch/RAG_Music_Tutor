@@ -9,6 +9,10 @@ app_file: apps/streamlit_app.py
 python_version: "3.11"
 pinned: false
 short_description: 日本語の音楽理論教材を根拠に出典つきで答えるRAG
+# BGE-M3 をビルド時にイメージへ焼き込み、コールドスタート時の約4.6GB
+# ランタイムDL（FlagEmbedding が snapshot_download でリポジトリ丸ごと取得）を回避する。
+preload_from_hub:
+  - BAAI/bge-m3
 ---
 
 # music-rag
