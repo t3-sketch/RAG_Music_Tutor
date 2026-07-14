@@ -2,7 +2,7 @@
 
 このドキュメントは、Claude（および他のAIアシスタント/コラボレーター）がこのリポジトリで作業する際のオンボーディング資料。プロジェクトの目的・アーキテクチャ・設計判断・作業規約をまとめる。
 
-最終更新: 2026-07-05（Phase 4: 音声URL入力 完了時点）
+最終更新: 2026-07-13（Phase 5: 評価基盤の刷新 進行中）
 
 ---
 
@@ -131,6 +131,24 @@ uv run python experiments/evaluation.py
   - フォーマットは mp3 mono 採用（audioreadフォールバック警告の回避 + サイズ半減。`change.md` 2026-07-05 に計測表）
 - **検証完了（2026-07-05）**: ①UIからの完全E2E（YouTube URL → yt-dlp → BTC解析 128BPM/D#maj/vi-IV-I-V → Gemini生成・出典表示）、②ニコニコ実URL（sm9・nico.ms 短縮URL、削除済み動画のエラー変換含む）、③Inngest経由（`rag/query` イベントに audio_path=URL、step内 resolve→analyze→cleanup 完走・一時dir残骸なし）。
 
+### Phase 5: 評価基盤の刷新（進行中・2026-07-13〜）
+
+**ゴール:** 「検索改善（ハイブリッド検索/クエリ拡張）で本当に良くなったか」を統計的に主張できる評価基盤を作る。そのために (a) 評価セットを統計的検出力のある規模（silver 20 → 100問超）に拡張し、(b) 多ソース比較質問を測れる指標に刷新し、(c) A/B判断を集計平均でなく paired difference で行う。
+
+- **実験設計ガイドを整備**: `docs/experiment-design.md`。Web調査（Anthropic "Adding Error Bars to Evals" 2024、Google Cloud、Nirant Kasliwal 等）を現状パイプラインに引きつけて整理。核心の知見は「hit-rate 0.85・n=20 の 95%CI は ±0.16 → n=20〜33 では戦略差はほぼ検出不能」。
+- **forum由来の評価データセット（`data/eval/forum_review.json`, gitignore）**: SoundQuestフォーラムの実質問129件。answerable 104件。正解ソースは**複数記事対応（list）**で、比較/統合質問を測れる。各問に `match_type`（single/and/or）を持つ。
+  - レビュー進捗: 優先バッチ24件（flags付き5 + confidence low/med 20）を **NotebookLM + 人手で検証完了**（ADOPT 13 / EXCLUDE 11）。残り **80件は未レビュー（review_status=pending、LLM推定ラベルのまま）**。
+- **統合eval set `experiments/build_eval_set.py` → `data/eval/eval_set_merged.json`**: silver 20 + forum(reviewed) を統一スキーマにまとめる。各問に `reviewed` フラグ（未検証ラベルを必ず区別）。`--include-pending` で未レビュー80件をタグ付き投入も可。現状 **33問**（silver 20 + forum reviewed 13）。
+- **指標を多ソース対応に刷新（`experiments/evaluation.py`）**: 主指標を **recall@k**（top-kに入った正解記事の割合・連続値）に。加えて **strict hit-rate**（and=全記事必須/or・single=1つでOK）と MRR。source/match_type/difficulty で**層別集計**（全体平均が比較質問の弱点を隠すため）。単一ソース経路は不変で、silver 20問が過去値 0.85/0.792 を完全再現（回帰なし確認）。
+- **paired difference 分析（`experiments/paired_diff.py`）**: 保存済み per-question から fixed vs structure を突き合わせ、平均差の bootstrap 95%CI と Wilcoxon 検定を出す。
+- **初回スコア（33問, structure）**: recall@5 0.707 / strict_hit 0.667 / MRR 0.669。**AND（多ソース比較質問, n=9）が壊滅的に弱い**（recall 0.26 / strict_hit 0.11）→ 度数表記の比較質問がchunkingで解けない件を**定量化**。
+- **paired diff の結論（fixed→structure, n=33）**: 3指標すべてで有意差なし（recall 平均差 +0.046, CI[−0.046,+0.152], Wilcoxon p=0.44）。33問中28問が同一で、差は forum 5問が動かしているだけ。silver 20問は fixed/structure で1問も動かない（retrieval指標はもともと両者を区別しない。structureの価値は過去のRAGAS context_precision +0.134 で見えたもの）。**→ 検定力不足を厳密に確認。structure優位を retrieval で主張するには残り80問レビューが前提。**
+
+### 次にやること（Phase 5 続き）
+1. **forum残り80件のレビュー**（NotebookLM 4分割の続き）→ eval set を 100問超へ → 検定力確保
+2. その後で fixed vs structure / 将来のハイブリッド検索を paired diff で再評価
+3. （並行可）33問で RAGAS context_precision の paired diff を見る（structureの真価はこちらに出る。LLM消費あり）
+
 ### 既知の未解決事項
 - **「5-1と4-1の違い」「7-1と4-3の解決の違い」（度数表記の比較質問）は構造chunkingでも context&#95;precision/recall = 0.0** → chunkingでは解けない検索課題（表記ゆれ・複数記事にまたがる比較）。ハイブリッド検索/クエリ拡張の動機。
 - **answer&#95;correctness は依然低い（0.37）** → 粒度ミスマッチ疑い。生成層・評価セット側の課題。
@@ -158,9 +176,10 @@ uv run python experiments/evaluation.py
 - MVPは MajMin + 7th まで
 - テンションコード（9th/11th/13th）は将来課題。音源分離が前提条件で、学術的にも未解決に近い領域（BTC-FDAA-FGF等の論文で確認済み）
 
-### 次のマイルストーン（Phase 5 候補・未確定）
-- 旧 `music_theory` collection（fixed chunking）を削除するかの判断（検索先としての構造chunking採用は完了済み。残すならA/B比較用としての位置づけを明記）
-- 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）
+### 次のマイルストーン（Phase 5 進行中 → §4 Phase 5 参照）
+- **forum残り80件のレビュー → eval set 100問超 → 検定力確保**（最優先。これが無いと以下の効果を統計的に主張できない）
+- 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）← AND質問 recall 0.26 という定量的動機がついた
+- 旧 `music_theory` collection（fixed chunking）を削除するかの判断（A/B比較の検定力が付くまで残置が無難）
 - 音声解析結果によるretrievalクエリ拡張（現状は生成層にのみ寄与）
 
 ### バックログ

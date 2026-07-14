@@ -33,7 +33,7 @@ from music_rag import embedder
 from music_rag import retriever
 from music_rag import llm as llm_module  # 生成層（本番と同じ NVIDIA 呼び出し）
 
-EVAL_PATH = config.EVAL_DIR / "questions.json"
+EVAL_PATH = config.EVAL_DIR / "eval_set_merged.json"
 SCORES_DIR = config.EVAL_DIR
 
 # RAGASの評価者（judge）モデル。生成層（NVIDIA・meta/llama-3.3-70b-instruct）とは
@@ -49,12 +49,15 @@ RAGAS_SLEEP_SEC = int(os.getenv("RAGAS_SLEEP_SEC", "15"))
 
 # ── eval set 読み込み ───────────────────────────
 def load_eval_set() -> list[dict]:
-    """questions.json を読む。各問は question / expected_source を持つ。"""
+    """統合 eval set（eval_set_merged.json）を読む。
+    各問は question / expected_source(list) / match_type を持つ。
+    experiments/build_eval_set.py で生成する。"""
     data = json.loads(EVAL_PATH.read_text(encoding="utf-8"))
-    # hit-rate に最低限必要なフィールドだけ検証する
     for i, row in enumerate(data):
         if "question" not in row or "expected_source" not in row:
             raise ValueError(f"row {i}: question / expected_source が必要です")
+        if not isinstance(row["expected_source"], list):
+            raise ValueError(f"row {i}: expected_source は list である必要があります")
     return data
 
 
@@ -72,18 +75,43 @@ def retrieve_with_text(question: str, top_k: int, collection: str) -> list[dict]
     return retriever.search(vec, top_k=top_k, collection=collection)
 
 
-# ── 指標（hit-rate / MRR） ──────────────────────
-def _hit_at_k(retrieved: list[str], expected: str, k: int) -> bool:
-    """top-k に expected が含まれるか。"""
-    return expected in retrieved[:k]
+# ── 指標（recall@k 主 / strict hit-rate / MRR） ──
+# 多ソース対応。expected_source は常に list。
+#   recall@k       : top-k に入った正解記事の割合（主指標。連続値、部分点が見える）
+#   strict_hit@k   : match_type を尊重した二値。and=全記事必須 / or・single=1つでOK
+#   MRR            : いずれかの正解記事が最初に現れた順位の逆数
+def _recall_at_k(retrieved: list[str], expected: list[str], k: int) -> float:
+    """top-k に入った正解記事の割合（主指標）。多ソースでも連続値で測れる。"""
+    if not expected:
+        return 0.0
+    top = set(retrieved[:k])
+    return sum(1 for e in expected if e in top) / len(expected)
 
 
-def _reciprocal_rank(retrieved: list[str], expected: str) -> float:
-    """expected が最初に現れた順位の逆数。出なければ 0。"""
+def _strict_hit_at_k(
+    retrieved: list[str], expected: list[str], k: int, match_type: str
+) -> bool:
+    """match_type を尊重した二値hit。
+    and → 全正解記事が top-k に揃って初めて hit。
+    or / single → どれか1つ取れれば hit。"""
+    if not expected:
+        return False
+    top = set(retrieved[:k])
+    hits = [e in top for e in expected]
+    return all(hits) if match_type == "and" else any(hits)
+
+
+def _reciprocal_rank(retrieved: list[str], expected: list[str]) -> float:
+    """いずれかの正解記事が最初に現れた順位の逆数。出なければ 0。"""
+    exp = set(expected)
     for rank, source in enumerate(retrieved, start=1):
-        if source == expected:
+        if source in exp:
             return 1.0 / rank
     return 0.0
+
+
+def _mean(xs: list[float]) -> float:
+    return round(sum(xs) / len(xs), 4) if xs else 0.0
 
 
 # ── 1 collection を評価（hit-rate / MRR） ───────
@@ -92,36 +120,55 @@ def evaluate_retrieval(
     collection: str,
     k: int = config.TOP_K,
 ) -> dict:
-    """1つの collection について hit-rate@k と MRR を計算する。"""
-    hits = 0
-    rr_sum = 0.0
+    """1つの collection について recall@k（主指標）・strict hit-rate@k・MRR を計算する。
+    source（silver_manual/forum）・match_type（single/and/or）・difficulty で層別集計も返す。"""
     per_question = []
 
     for row in eval_set:
         retrieved = retrieve_sources(row["question"], top_k=k, collection=collection)
         expected = row["expected_source"]
+        match_type = row.get("match_type", "or")
 
-        is_hit = _hit_at_k(retrieved, expected, k)
+        recall = _recall_at_k(retrieved, expected, k)
+        is_hit = _strict_hit_at_k(retrieved, expected, k, match_type)
         rr = _reciprocal_rank(retrieved, expected)
 
-        hits += int(is_hit)
-        rr_sum += rr
-
         per_question.append({
+            "id": row.get("id"),
             "question": row["question"],
             "expected": expected,
+            "match_type": match_type,
+            "source": row.get("source"),
+            "difficulty": row.get("difficulty"),
+            "reviewed": row.get("reviewed"),
             "retrieved": retrieved,
-            "hit": is_hit,
+            "recall": round(recall, 4),
+            "strict_hit": is_hit,
             "reciprocal_rank": round(rr, 4),
         })
 
-    n = len(eval_set)
+    def summarize(rows: list[dict]) -> dict:
+        return {
+            "n": len(rows),
+            "recall_at_k": _mean([r["recall"] for r in rows]),
+            "strict_hit_rate": _mean([float(r["strict_hit"]) for r in rows]),
+            "mrr": _mean([r["reciprocal_rank"] for r in rows]),
+        }
+
+    def stratify(key: str) -> dict:
+        groups: dict[str, list[dict]] = {}
+        for r in per_question:
+            groups.setdefault(str(r.get(key)), []).append(r)
+        return {g: summarize(rs) for g, rs in sorted(groups.items())}
+
+    overall = summarize(per_question)
     return {
         "collection": collection,
-        "n": n,
         "k": k,
-        "hit_rate": round(hits / n, 4) if n else 0.0,
-        "mrr": round(rr_sum / n, 4) if n else 0.0,
+        **overall,
+        "by_source": stratify("source"),
+        "by_match_type": stratify("match_type"),
+        "by_difficulty": stratify("difficulty"),
         "per_question": per_question,
     }
 
@@ -133,13 +180,26 @@ def main() -> None:
 
     all_scores = {}
     for strategy, collection in config.COLLECTIONS.items():
-        # collection が存在しない戦略はスキップ（未 ingestion）
-        result = evaluate_retrieval(eval_set, collection=collection)
+        # collection が存在しない戦略はスキップ（未 ingestion / 削除済み）
+        try:
+            result = evaluate_retrieval(eval_set, collection=collection)
+        except Exception as e:
+            print(f"[{strategy}] collection={collection} をスキップ: {e}\n")
+            continue
         all_scores[strategy] = result
 
-        print(f"[{strategy}] collection={collection}")
-        print(f"  hit_rate@{result['k']} = {result['hit_rate']}")
-        print(f"  mrr                = {result['mrr']}")
+        print(f"[{strategy}] collection={collection}  (n={result['n']}, k={result['k']})")
+        print(f"  recall@{result['k']}      = {result['recall_at_k']}")
+        print(f"  strict_hit_rate = {result['strict_hit_rate']}")
+        print(f"  mrr             = {result['mrr']}")
+        print("  ── by match_type ──")
+        for mt, sc in result["by_match_type"].items():
+            print(f"    {mt:8s} n={sc['n']:2d}  recall={sc['recall_at_k']:.3f}  "
+                  f"strict_hit={sc['strict_hit_rate']:.3f}  mrr={sc['mrr']:.3f}")
+        print("  ── by source ──")
+        for src, sc in result["by_source"].items():
+            print(f"    {src:14s} n={sc['n']:2d}  recall={sc['recall_at_k']:.3f}  "
+                  f"strict_hit={sc['strict_hit_rate']:.3f}  mrr={sc['mrr']:.3f}")
         print()
 
     # 日付付きで保存（前後比較のため）
