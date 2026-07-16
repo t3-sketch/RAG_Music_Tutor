@@ -2,7 +2,7 @@
 
 このドキュメントは、Claude（および他のAIアシスタント/コラボレーター）がこのリポジトリで作業する際のオンボーディング資料。プロジェクトの目的・アーキテクチャ・設計判断・作業規約をまとめる。
 
-最終更新: 2026-07-13（Phase 5: 評価基盤の刷新 進行中）
+最終更新: 2026-07-16（Phase 5: 評価セット60問化・検索層評価まで完了 / RAGAS未実施）
 
 ---
 
@@ -30,7 +30,7 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 | --- | --- | --- |
 | Embeddings | BGE-M3 | dense 1024次元。FlagEmbeddingでローカル実行のみ（リモートバックエンドは2026-07-13に全廃。DeepInfra経路は一度も使われず、NVIDIA Build版bge-m3はサーバー側500で使用不可のため）。ハイブリッド検索は将来課題 |
 | Vector DB | Qdrant | ローカルは Docker（bind mount: `data/qdrant/`）、公開デモは Qdrant Cloud |
-| 生成層 LLM | NVIDIA Build (`meta/llama-3.3-70b-instruct`) | `llm.py` 経由（OpenAI互換API。`config.NVIDIA_LLM_MODEL`）。Gemini無料枠のRPD枯渇回避のため移行。Claude APIはMVPでは不使用 |
+| 生成層 LLM | **Gemini `gemini-3.5-flash`**（既定） / NVIDIA Build (`meta/llama-3.3-70b-instruct`) | `llm.py` 経由（両者ともOpenAI互換API）。**`config.LLM_PROVIDER`（env `LLM_PROVIDER=gemini\|nvidia`）で切替**。NVIDIAは応答が遅くUIが待たされるため既定をGeminiに（2026-07-16）。**評価バッチ（RAGAS）は `LLM_PROVIDER=nvidia` を推奨** — GeminiはRPD上限が厳しく、judge(Gemini)とRPDを食い合うため。Claude APIはMVPでは不使用 |
 | 評価 | RAGAS 0.4.3 | judge: Gemini `gemini-3.1-flash-lite`（`config.GEMINI_MODEL`。生成層とは別プロバイダに分離しbias回避）。langchain-community==0.3.27 ピン留め必須 |
 | デプロイ | Hugging Face Spaces (Streamlit SDK, 無料CPU) | `main` push で GitHub Actions が同期。オープンコーパス版(`music_theory_open`)を公開。URL入力はオフ |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
@@ -136,18 +136,28 @@ uv run python experiments/evaluation.py
 **ゴール:** 「検索改善（ハイブリッド検索/クエリ拡張）で本当に良くなったか」を統計的に主張できる評価基盤を作る。そのために (a) 評価セットを統計的検出力のある規模（silver 20 → 100問超）に拡張し、(b) 多ソース比較質問を測れる指標に刷新し、(c) A/B判断を集計平均でなく paired difference で行う。
 
 - **実験設計ガイドを整備**: `docs/experiment-design.md`。Web調査（Anthropic "Adding Error Bars to Evals" 2024、Google Cloud、Nirant Kasliwal 等）を現状パイプラインに引きつけて整理。核心の知見は「hit-rate 0.85・n=20 の 95%CI は ±0.16 → n=20〜33 では戦略差はほぼ検出不能」。
-- **forum由来の評価データセット（`data/eval/forum_review.json`, gitignore）**: SoundQuestフォーラムの実質問129件。answerable 104件。正解ソースは**複数記事対応（list）**で、比較/統合質問を測れる。各問に `match_type`（single/and/or）を持つ。
-  - レビュー進捗: 優先バッチ24件（flags付き5 + confidence low/med 20）を **NotebookLM + 人手で検証完了**（ADOPT 13 / EXCLUDE 11）。残り **80件は未レビュー（review_status=pending、LLM推定ラベルのまま）**。
-- **統合eval set `experiments/build_eval_set.py` → `data/eval/eval_set_merged.json`**: silver 20 + forum(reviewed) を統一スキーマにまとめる。各問に `reviewed` フラグ（未検証ラベルを必ず区別）。`--include-pending` で未レビュー80件をタグ付き投入も可。現状 **33問**（silver 20 + forum reviewed 13）。
+- **forum由来の評価データセット（`data/eval/forum_review.json`, gitignore）**: SoundQuestフォーラムの実質問129件。正解ソースは**複数記事対応（list）**で、比較/統合質問を測れる。各問に `match_type`（single/and/or）を持つ。
+  - レビュー完了（2026-07-16）: 優先バッチ24件（flags付き+confidence low/med）を NotebookLM+人手で検証（ADOPT 13 / EXCLUDE 11）。残り80件（全て confidence high）を **NotebookLM API 経由で検証**（`experiments/apply_nblm_review.py`）→ **ADOPT 27 / EXCLUDE 52 / 保留 1**。
+  - **重要な発見: 元パイプラインの `answerable_standalone=true` ラベルは楽観的すぎた。** 除外率65%で、実体はサイトへの機能要望・誤字報告・学習相談・自作曲の分析依頼など「記事では原理的に答えられない投稿」。フォーラムを評価セット化する際は answerable 判定こそが本体の作業。
+  - **NotebookLM運用の知見**: ワークシートを**ソースとして**読ませると内容を部分的にしか拾えず「質問文が省略されていて読めない」と誤EXCLUDEする（10問中5問で発生）。**質問文をプロンプトに直接インライン**すれば解消（記事側の読み取りは正常）。「読めなかった」起因のEXCLUDEは判定として無効なので、`apply_nblm_review.py` が正規表現で検出して保留に回す。実在しないslugも `data/raw` 照合で自動排除。
+- **統合eval set `experiments/build_eval_set.py` → `data/eval/eval_set_merged.json`**: silver 20 + forum(reviewed) を統一スキーマにまとめる。各問に `reviewed` フラグ（未検証ラベルを必ず区別）。`--include-pending` で未レビュー分をタグ付き投入も可。現状 **60問**（silver 20 + forum reviewed 40、うち AND 22 / OR 18 / single 20）。
 - **指標を多ソース対応に刷新（`experiments/evaluation.py`）**: 主指標を **recall@k**（top-kに入った正解記事の割合・連続値）に。加えて **strict hit-rate**（and=全記事必須/or・single=1つでOK）と MRR。source/match_type/difficulty で**層別集計**（全体平均が比較質問の弱点を隠すため）。単一ソース経路は不変で、silver 20問が過去値 0.85/0.792 を完全再現（回帰なし確認）。
 - **paired difference 分析（`experiments/paired_diff.py`）**: 保存済み per-question から fixed vs structure を突き合わせ、平均差の bootstrap 95%CI と Wilcoxon 検定を出す。
-- **初回スコア（33問, structure）**: recall@5 0.707 / strict_hit 0.667 / MRR 0.669。**AND（多ソース比較質問, n=9）が壊滅的に弱い**（recall 0.26 / strict_hit 0.11）→ 度数表記の比較質問がchunkingで解けない件を**定量化**。
-- **paired diff の結論（fixed→structure, n=33）**: 3指標すべてで有意差なし（recall 平均差 +0.046, CI[−0.046,+0.152], Wilcoxon p=0.44）。33問中28問が同一で、差は forum 5問が動かしているだけ。silver 20問は fixed/structure で1問も動かない（retrieval指標はもともと両者を区別しない。structureの価値は過去のRAGAS context_precision +0.134 で見えたもの）。**→ 検定力不足を厳密に確認。structure優位を retrieval で主張するには残り80問レビューが前提。**
+- **検索層スコア（60問, 2026-07-16, `data/eval/scores_20260716.json`）**:
+
+  | | recall@5 | strict_hit | MRR |
+  | --- | --- | --- | --- |
+  | fixed | 0.594 | 0.500 | 0.602 |
+  | structure | 0.625 | 0.533 | 0.579 |
+
+- **AND質問（多ソース比較・統合, n=22）は依然壊滅的**: structure recall 0.386 / strict_hit 0.136。n=9→22 に増えても改善せず、**偶然では説明できない確かな弱点**として定量化できた（単一ソースhit-rateでは見えない）。→ ハイブリッド検索/クエリ拡張の動機が確定。
+- **paired diff の結論（fixed→structure, n=60）**: 3指標すべて有意差なし。recall +0.031（CI[−0.053,+0.114], p=0.58）、strict_hit +0.033（p=0.69）、**MRRは符号反転 −0.023**（改善9/悪化10, p=0.41）。60問中49問が同一。**n=33でも n=60でも結論は変わらず、retrieval指標で structure 優位は主張できない。** silver 20問は fixed/structure で1問も動かない（retrieval指標はもともと両者を区別しない。structureの価値は過去のRAGAS context_precision +0.134 でのみ観測されている）。
+- **当初「100問で検定力確保」の見込みは外れた**: answerable が実際には少なく（除外52件）採れたのは60問。かつ retrieval 指標自体が両chunking戦略を区別しないため、**問題は n ではなく指標の選択**の可能性が高い。structure の評価は RAGAS context_precision で行うべき。
 
 ### 次にやること（Phase 5 続き）
-1. **forum残り80件のレビュー**（NotebookLM 4分割の続き）→ eval set を 100問超へ → 検定力確保
-2. その後で fixed vs structure / 将来のハイブリッド検索を paired diff で再評価
-3. （並行可）33問で RAGAS context_precision の paired diff を見る（structureの真価はこちらに出る。LLM消費あり）
+1. **RAGAS（生成層）を60問で実行** — 未実施。`LLM_PROVIDER=nvidia` に切替えて（生成=NVIDIA / judge=Gemini flash-lite の分離を維持、GeminiのRPD枯渇回避）、まず **context_precision の paired diff**（structureの真価が出る指標・コール数最小）から。
+2. 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）← AND recall 0.386 (n=22) という確かな動機
+3. 保留1件 + 未レビュー26件（answerable=false 判定済み含む）の扱いは必要になったら
 
 ### 既知の未解決事項
 - **「5-1と4-1の違い」「7-1と4-3の解決の違い」（度数表記の比較質問）は構造chunkingでも context&#95;precision/recall = 0.0** → chunkingでは解けない検索課題（表記ゆれ・複数記事にまたがる比較）。ハイブリッド検索/クエリ拡張の動機。
@@ -163,6 +173,8 @@ uv run python experiments/evaluation.py
 - librosa追加時、numbaの制約で numpy が 2.5.0 → 2.4.6 に自動ダウングレードされた
 - torch 2.12.1 導入済み
 - **librosa 0.10+ の破壊的変更:** `beat_track` 等のtempo戻り値が配列化 → `float(np.atleast_1d(tempo)[0])` で対応（修正済み）
+- **thinkingモデルに `max_tokens` を引き継ぐと回答が消える（2026-07-16）:** `max_tokens` は「そのレスポンスの総生成量」の上限で、thinkingモデル（`gemini-3.5-flash`）では**思考トークンと可視回答が同じ予算を食い合う**。非thinking（NVIDIA llama-3.3）向けに調整した `MAX_TOKENS=1500` をそのまま使うと、思考が~1430tok消費し**可視出力66tokで `finish_reason=length`** → 回答が「テンポは約 **」で途切れる。対処: `llm.py` の生成呼び出しでは **max_tokens を指定しない**（モデル既定の大きい上限に委ねる）。
+- **生成API呼び出しには必ず明示 timeout を（2026-07-16）:** OpenAI SDK既定は約600秒。NVIDIA側が遅いとUIが10分ハングする（実際に発生）。`config.LLM_TIMEOUT_SEC`（既定90秒）を client に渡している。`llm.py` の tenacity リトライは `InternalServerError`(5xx) にしか発火しないので、「ただ遅い」ケースはリトライされず待ち続ける点に注意。
 - RAGAS × Gemini統合の落とし穴:
   - instructorアダプタ・litellmアダプタともに `google-genai` ネイティブクライアントの非同期判定に失敗
   - 解決策: GeminiのOpenAI互換エンドポイント経由で `AsyncOpenAI` + `provider="openai"`

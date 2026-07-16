@@ -49,18 +49,27 @@ DISTANCE = "cosine"
 
 # --- モデル ---
 EMBED_MODEL = os.getenv("EMBED_MODEL", "BAAI/bge-m3")
-# RAGAS judge（評価層）専用。生成層は NVIDIA に移行済みのため、ここは
+# RAGAS judge（評価層）専用。生成層とは別モデルに分離（self-preference bias回避）。
 # evaluation.py からのみ参照される（experiments/evaluation.py 参照）。
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# Gemini の OpenAI互換エンドポイント（生成層で gemini を使う場合に共有）。
+GEMINI_BASE_URL = os.getenv(
+    "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/"
+)
 
-# --- NVIDIA Build（OpenAI互換API。生成層で使用）---
-# 生成層（llm.py）は Gemini 無料枠のRPD枯渇を避けるため NVIDIA に移行済み。
-# RAGAS judge は自己採点バイアス回避のため意図的に Gemini 側へ分離する
-# （evaluation.py 参照）。
+# --- NVIDIA Build（OpenAI互換API）---
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 NVIDIA_LLM_MODEL = os.getenv("NVIDIA_LLM_MODEL", "meta/llama-3.3-70b-instruct")
+
+# --- 生成層プロバイダ切替（backlog「生成LLMを選べる」の最小版。env LLM_PROVIDER で切替）---
+# gemini / nvidia。既定は gemini（NVIDIA endpoint が応答遅延・ハングするため切替、2026-07-13）。
+# 注意: gemini 無料枠は RPD 上限が厳しい（失敗リクエストもRPDを消費する）。連続評価では枯渇注意。
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
+GEN_GEMINI_MODEL = os.getenv("GEN_GEMINI_MODEL", "gemini-3.5-flash")
+# 生成呼び出しのタイムアウト（秒）。未指定だとSDK既定=600秒でハングし得るため明示。
+LLM_TIMEOUT_SEC = int(os.getenv("LLM_TIMEOUT_SEC", "90"))
 
 # --- チャンク分割（文字数ベース。日本語教材を想定）---
 CHUNK_CHARS = 800
