@@ -19,14 +19,22 @@ preload_from_hub:
 
 # music-rag
 
+**[▶ デモを試す（Hugging Face Spaces）](https://huggingface.co/spaces/t3-sketch/RAG_Music_Tutor)**
+
 日本語の音楽理論教材コーパスを根拠に、コード進行・メロディ・リズムに関する質問へ日本語で解説する RAG システムです。
 ユーザーの質問（＋任意で楽曲の音響特徴）に対し、教材から関連箇所を検索し、それを根拠に LLM が解説を生成します。
 
-> **コーパスの2系統**:
-> - **ローカル/フル版**: SoundQuest（soundquest.jp）の記事コーパス。著作権は原著者に帰属し、利用許諾を打診中のため**公開デプロイには使いません**（コーパス本体 `data/` もリポジトリ非同梱）。
-> - **公開デモ版**: オープンライセンス教材（Open Music Theory 等）のコーパス（Qdrant `music_theory_open`）。権利上問題なく共有できるため、**公開デモ（Hugging Face Spaces）はこちらを検索対象**にしています。
+> **コーパスの扱い**:
+> 検索対象は SoundQuest（soundquest.jp）の記事コーパスです。著作権は原著者に帰属し、**利用許諾は打診中**。
+> そのうえで、以下の線引きで運用しています。
 >
-> コードとアーキテクチャは両系統で共通で、`QDRANT_COLLECTION` で検索先を切り替えるだけです。
+> - **コーパス本体・ベクトルDBは配布しない**。`data/`（記事本文）も Qdrant のスナップショットもリポジトリ非同梱で、
+>   ダウンロードできる経路はありません。デモは質問への回答を返すだけです。
+> - **出典は元記事へのリンクで示す**。本文の転載はせず、読者を SoundQuest 本体へ送ります。
+> - **取り込み（scrape / ingest）系のスクリプトも非公開**。公開しているのは検索・生成（query）側のコードだけです。
+>
+> オープンライセンス教材（Open Music Theory）版のコーパス（Qdrant `music_theory_open`）も併存しており、
+> `ENABLE_HYBRID=false` で切り替えられます。コードとアーキテクチャは両系統で共通です。
 
 ---
 
@@ -48,13 +56,19 @@ preload_from_hub:
 
 | 層 | 公開デモでの構成 |
 | --- | --- |
-| 検索先 | Qdrant Cloud（`music_theory_open` = オープンライセンス教材） |
-| 埋め込み | ローカル BGE-M3（FlagEmbedding。Space 内で実行） |
-| 生成 | NVIDIA Build（`meta/llama-3.3-70b-instruct`、OpenAI互換API） |
+| 検索先 | Qdrant Cloud（`music_theory_hybrid` = SoundQuest コーパス 2,355 chunks） |
+| 検索方式 | dense + sparse のハイブリッド（BGE-M3 の lexical_weights を Qdrant Prefetch → RRF 融合） |
+| クエリ拡張 | Gemini `gemini-3.1-flash-lite`。度数表記の正規化・同義語を検索前に追記 |
+| 埋め込み | ローカル BGE-M3（FlagEmbedding。Space 内で実行。dense/sparse を1パスで取得） |
+| 生成 | Gemini `gemini-3.5-flash-lite`（OpenAI互換API。`LLM_PROVIDER` で NVIDIA / OpenRouter に切替可） |
 | 音声入力 | ファイルアップロードは有効。URL入力（yt-dlp）は利用規約配慮で無効（`ENABLE_URL_INPUT=false`） |
-- **生成と評価 judge はプロバイダごと分離**: 生成は NVIDIA、RAGAS の judge は Gemini
-  （`gemini-3.1-flash-lite`）。self-preference bias を避けつつ、無料枠の
+| 出典表示 | 記事タイトル＋元記事へのリンクのみ。本文は表示しない（`SHOW_DEBUG_CHUNKS=false`） |
+
+- **生成と評価 judge はプロバイダごと分離**: 生成は Gemini、RAGAS の judge は
+  MiniMax（OpenRouter 経由）。self-preference bias を避けつつ、無料枠の
   レート制限（Gemini の RPD 枯渇）を評価と本番で独立させています。
+- **クエリ拡張のモデルも judge とは別系統**（`QE_GEMINI_MODEL`）。judge を差し替えたときに
+  本番の検索挙動が黙って変わらないようにするためです。
 
 ---
 
@@ -79,9 +93,9 @@ preload_from_hub:
 ## 現状（MVP）
 
 - **コーパス**: 2 系統。
-  - フル版（ローカル）: SoundQuest の一般公開記事 162 本（Qdrant `music_theory_structure` に 2,355 points、構造ベース chunking）。会員限定記事 29 本は権利配慮のため除外（`scripts/check_gated.py` で検出）。
-  - 公開デモ版: オープンライセンス教材コーパス（Qdrant `music_theory_open`）。権利上共有できるため公開デモの検索対象。
-- **検索・生成**: 質問 → embed → search → generate の E2E が動作します。Streamlit UI（`apps/streamlit_app.py`）から利用でき、公開デモは Hugging Face Spaces で稼働します。
+  - SoundQuest 版（公開デモの検索対象）: 一般公開記事 162 本を dense+sparse の named vectors で保持（Qdrant `music_theory_hybrid` に 2,355 points、構造ベース chunking）。会員限定記事 29 本は権利配慮のため除外。
+  - オープン教材版: Open Music Theory コーパス（Qdrant `music_theory_open`）。`ENABLE_HYBRID=false` で切替。
+- **検索・生成**: 質問 → クエリ拡張 → embed（dense+sparse）→ ハイブリッド検索（RRF）→ generate の E2E が動作します。Streamlit UI（`apps/streamlit_app.py`）から利用でき、公開デモは Hugging Face Spaces で稼働します。
 - **音響解析**: 音源のテンポ・キー・コード進行を解析し（BTC-ISMIR19、フォールバックはテンプレートマッチング）、解析結果を根拠に加えた解説を生成します。
 - **評価基盤**: hit-rate@k / MRR（常用）と RAGAS 5 指標（節目のみ）の 2 層評価。20 問の Q&A セットで chunking 戦略の A/B 比較を実施済みです（下記）。
 
@@ -91,7 +105,7 @@ preload_from_hub:
 
 検索層は **hit-rate@k / MRR（LLM 不使用・常時実行可能）** と **RAGAS（LLM judge・節目のみ）** の 2 層で評価しています。
 生成層と評価 judge は、self-preference bias を避けるため意図的に別プロバイダにしています
-（現行: 生成 = NVIDIA `meta/llama-3.3-70b-instruct`、judge = Gemini `gemini-3.1-flash-lite`）。
+（現行: 生成 = Gemini `gemini-3.5-flash-lite`、judge = MiniMax（OpenRouter 経由））。
 なお下表の A/B 実測（2026-07）は当時の生成層 `gemini-3.5-flash` で取得した記録です（[docs/evaluation.md](docs/evaluation.md)）。
 
 ### chunking 戦略の A/B 比較（n=20、2026-07）
@@ -109,9 +123,36 @@ preload_from_hub:
 - **hit-rate では両者の差がゼロ**でしたが、RAGAS の context_precision で明確な差が可視化されました。「正解記事が top-k に入ったか」だけでは、取得チャンクの中身の質（ノイズ混入）は測れないためです。
 - 固定長 chunking の弱点だった比較形式の質問（例:「3m はトニックかサブドミナントか」）が context_precision/recall 0.0 → 1.0 に回復しました。
 - この結果を受けて**構造ベース chunking を本番採用**しています（`CHUNK_STRATEGY` で切替可能）。
-- **残課題**: 度数表記の比較質問（「5-1 と 4-1 の違い」等）は構造 chunking でも 0.0 のままです。表記ゆれと複数記事にまたがる比較は chunking では解決できず、ハイブリッド検索・クエリ拡張の動機になっています。answer_correctness の低さ（≈0.37）も粒度ミスマッチ疑いとして未解決です。
+- **残課題**: 度数表記の比較質問（「5-1 と 4-1 の違い」等）は構造 chunking でも 0.0 のままでした。表記ゆれと複数記事にまたがる比較は chunking では解決できず、これが次の 2×2 実験の動機になっています。
 
 詳細な per-question 比較は [docs/evaluation.md](docs/evaluation.md) を参照してください。
+
+### 検索層の 2×2 要因計画（n=66、2026-07）
+
+評価セットを 66 問へ拡張し（silver 20 + フォーラム由来 40 + 生成 6）、
+**ハイブリッド検索（dense+sparse）× クエリ拡張（QE）** の効果を分離して測りました。
+主指標は多ソース質問に対応するため hit-rate ではなく **recall@k** です。
+
+| 条件 | 構成 | recall@5 | strict_hit | MRR | AND (n=27) | single (n=20) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Base | dense のみ | 0.599 | 0.500 | 0.562 | 0.352 | 0.850 |
+| B | dense + QE | 0.636 | 0.500 | 0.614 | 0.407 | 0.900 |
+| **C** | **dense+sparse + QE** | **0.674** | **0.545** | **0.615** | **0.426** | **1.000** |
+
+- **統計的に有意ではありません**（C vs Base の recall 差 +0.076、95%CI [−0.010, +0.162]、p=0.099）。
+  n=66 では CI が 0 をまたぎます。それでも採用したのは全指標で符号が一貫して正であり、
+  silver 20 問が 1.000 に達したためで、「有意差あり」とは主張していません。
+- 未解決だった「5-1 と 4-1 の違い」は、QE が `V-I` / `正格終止` / `変格終止` を補うことで
+  該当記事（cadence）を引けるようになりました。**ただし検索段階での解決であり、
+  RAGAS context_precision での再計測は未実施**です。
+- **QE のモデルを新しくすると悪化しました**（`gemini-3.1-flash-lite` → `3.5-flash-lite` で
+  4 比較すべて符号が負）。展開文が饒舌になりコーパス語彙から離れたことが原因と見ています。
+  「新しいモデル＝この用途で良い」は成り立ちませんでした（[docs/retrieval-experiment-results-qe35.md](docs/retrieval-experiment-results-qe35.md)）。
+- **多ソース比較質問（AND, n=27）は改善後も 0.426** で、single の 1.000 に大きく劣ります。
+  メタデータや reranking が次の打ち手です。
+
+実験設計・per-question の結果は [docs/retrieval-experiment-plan.md](docs/retrieval-experiment-plan.md) /
+[docs/retrieval-experiment-results.md](docs/retrieval-experiment-results.md) を参照してください。
 
 ---
 
@@ -154,13 +195,13 @@ flowchart TD
         embedder[embedder.py<br/>BGE-M3]
         retriever[retriever.py<br/>Qdrant]
         audio[audio.py<br/>librosa + BTC-ISMIR19]
-        llm[llm.py<br/>NVIDIA Build]
+        llm[llm.py<br/>Gemini / NVIDIA]
     end
 
     subgraph ext["外部"]
         SQ[(SoundQuest)]
         QD[(Qdrant)]
-        GM[NVIDIA Build API]
+        GM[Gemini API<br/>OpenAI互換]
     end
 
     ING --> RI
@@ -218,7 +259,7 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 │   ├── ingest.py             #   スクレイプ + チャンク分割（fixed / structure の 2 戦略）
 │   ├── embedder.py           #   BGE-M3 埋め込み（dense 1024 次元）
 │   ├── retriever.py          #   Qdrant upsert / search
-│   ├── llm.py                #   LLM による解説生成（NVIDIA Build / OpenAI互換API）
+│   ├── llm.py                #   解説生成 + クエリ拡張（Gemini / OpenAI互換API）
 │   ├── audio.py              #   音響解析（テンポ・キー・コード進行）
 │   ├── audio_source.py       #   音声URL入力の解決レイヤー（YouTube / ニコニコ → 一時ファイル）
 │   └── model/                #   BTC-ISMIR19 vendoring（コード認識モデル）
@@ -243,7 +284,7 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 - **ベクトルDB**: Qdrant（ローカルは Docker、公開デモは Qdrant Cloud。cosine, 1024 次元）
 - **埋め込み**: BGE-M3（dense 1024 次元。FlagEmbedding で自前実行。
   将来 sparse/hybrid に拡張可能）
-- **生成**: NVIDIA Build（`meta/llama-3.3-70b-instruct`、OpenAI互換API）
+- **生成**: Gemini `gemini-3.5-flash-lite`（OpenAI互換API。`LLM_PROVIDER` で NVIDIA / OpenRouter に切替可）
 - **評価**: hit-rate@k / MRR（自作）+ RAGAS 0.4（judge は Gemini `gemini-3.1-flash-lite` に分離）
 - **音響解析**: librosa（テンポ・キー）+ BTC-ISMIR19（コード認識、large_voca）
 - **言語/環境**: Python 3.11（conda + uv、src layout パッケージ）
@@ -308,7 +349,7 @@ CHUNK_STRATEGY=fixed uv run streamlit run apps/streamlit_app.py   # 旧chunking�
 - ~~生成品質の評価~~: RAGAS 5 指標評価を chunking A/B の節目で実施
 - ~~音声入力~~: アップロード音源の解析（librosa + BTC-ISMIR19）と解説生成への接続
 - ~~音声URL入力~~: YouTube / ニコニコ動画URLからの解析（yt-dlp。ローカル個人利用限定の機能で、公開デプロイ時は `ENABLE_URL_INPUT=false` で無効化）
-- ~~公開デプロイ~~: Hugging Face Spaces（Streamlit SDK, 無料CPU）へオープンライセンスコーパス版を公開。生成は NVIDIA Build、検索は Qdrant Cloud、埋め込み・音響解析は Space 内で実行。`main` への push で GitHub Actions が自動反映。
+- ~~公開デプロイ~~: Hugging Face Spaces（Streamlit SDK, 無料CPU）へ公開。生成は Gemini、検索は Qdrant Cloud、埋め込み・音響解析は Space 内で実行。`main` への push で GitHub Actions が自動反映。
 - ~~生成層のプロバイダ移行~~: Gemini 無料枠の RPD 枯渇を避けるため生成を NVIDIA Build に移行。RAGAS judge は bias 回避のため Gemini 側に分離。
 
 今後:
