@@ -84,7 +84,8 @@ if st.button("質問する", type="primary") and query.strip():
             notice += f" ({license_url})"
         st.caption(notice)
 
-    with st.expander("取得チャンク（デバッグ）"):
-        for i, c in enumerate(result["contexts"], 1):
-            st.markdown(f"**{i}. {c['source']}**（score {c['score']:.3f}）")
-            st.text(c["text"][:200])
+    if config.SHOW_DEBUG_CHUNKS:
+        with st.expander("取得チャンク（デバッグ）"):
+            for i, c in enumerate(result["contexts"], 1):
+                st.markdown(f"**{i}. {c['source']}**（score {c['score']:.3f}）")
+                st.text(c["text"][:200])

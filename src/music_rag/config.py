@@ -30,6 +30,18 @@ COLLECTIONS = {
 CHUNK_STRATEGY = os.getenv("CHUNK_STRATEGY", "structure")
 COLLECTION_NAME = COLLECTIONS[CHUNK_STRATEGY]
 
+# ハイブリッド検索用 collection（named vectors: dense + sparse）。dense-only の
+# COLLECTIONS とは別物で、ingest 側で sparse を持たせた再 upsert が前提。
+HYBRID_COLLECTION = os.getenv("HYBRID_COLLECTION", "music_theory_hybrid")
+
+# 検索層は条件C（dense+sparse ハイブリッド × query expansion）を採用（2026-07-21 実験）。
+# 66問 recall@5: Base 0.599 → C 0.674、single 20問は 1.000、AND 27問 0.352→0.426。
+# 有意ではない（p=0.099）が全指標で一貫して正なので採用。切り戻しは env で個別に。
+ENABLE_HYBRID = os.getenv("ENABLE_HYBRID", "true").lower() in ("true", "1", "yes")
+ENABLE_QE = os.getenv("ENABLE_QE", "true").lower() in ("true", "1", "yes")
+# 各 Prefetch ブランチの取得数。RRF で融合してから top_k に切る。
+HYBRID_PREFETCH_LIMIT = int(os.getenv("HYBRID_PREFETCH_LIMIT", "50"))
+
 # --- Qdrant（Docker, http://localhost:6333）---
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY") or None
@@ -63,11 +75,30 @@ NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
 NVIDIA_BASE_URL = os.getenv("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 NVIDIA_LLM_MODEL = os.getenv("NVIDIA_LLM_MODEL", "meta/llama-3.3-70b-instruct")
 
+# --- OpenRouter（OpenAI互換。1キーで Kimi / Qwen / MiniMax / DeepSeek をモデル名だけで切替）---
+# judge を Gemini 以外のプロバイダに逃がす用途がメイン（生成=Gemini との self-preference bias 回避）。
+# 実測(2026-07-16)の judge 実額/60問: minimax/minimax-m2.5 $0.23 / deepseek-v4-flash $0.11 /
+# kimi-k2.5 $0.82 / qwen3-235b-a22b-2507 $0.14。どれも誤差なので値段で選ぶ意味はない。
+# .env 側の表記ゆれ（OPEN_ROUTER_API_KEY）も拾う。
+OPENROUTER_API_KEY = (
+    os.getenv("OPENROUTER_API_KEY") or os.getenv("OPEN_ROUTER_API_KEY") or ""
+)
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "minimax/minimax-m2.5")
+
 # --- 生成層プロバイダ切替（backlog「生成LLMを選べる」の最小版。env LLM_PROVIDER で切替）---
-# gemini / nvidia。既定は gemini（NVIDIA endpoint が応答遅延・ハングするため切替、2026-07-13）。
+# gemini / nvidia / openrouter。既定は gemini。
+# NVIDIA無料枠は実測で使用不能（2026-07-16: 112tok応答に223秒、3回中2回が120秒でタイムアウト）。
 # 注意: gemini 無料枠は RPD 上限が厳しい（失敗リクエストもRPDを消費する）。連続評価では枯渇注意。
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
-GEN_GEMINI_MODEL = os.getenv("GEN_GEMINI_MODEL", "gemini-3.5-flash")
+GEN_GEMINI_MODEL = os.getenv("GEN_GEMINI_MODEL", "gemini-3.5-flash-lite")
+
+# query expansion 専用モデル。GEMINI_MODEL（RAGAS judge 兼用）とは意図的に分離する
+# ── judge を差し替えたときに本番の検索が黙って変わるのを防ぐため。
+# 3.5-flash-lite への差し替えは実験で不採用（全指標で 3.1 に劣後。docs/retrieval-experiment-results-qe35.md）。
+QE_GEMINI_MODEL = os.getenv("QE_GEMINI_MODEL", "gemini-3.1-flash-lite")
+# QE は検索前の1往復。ユーザーを待たせる区間なので生成層(90s)より短く切って諦める。
+QE_TIMEOUT_SEC = float(os.getenv("QE_TIMEOUT_SEC", "10"))
 # 生成呼び出しのタイムアウト（秒）。未指定だとSDK既定=600秒でハングし得るため明示。
 LLM_TIMEOUT_SEC = int(os.getenv("LLM_TIMEOUT_SEC", "90"))
 
@@ -82,6 +113,10 @@ MAX_TOKENS = 1500
 
 # 音声入力UI全体のゲート（MVP限定公開ではテキストQAに絞るため false にする）
 ENABLE_AUDIO_INPUT = os.getenv("ENABLE_AUDIO_INPUT", "true").lower() in ("true", "1", "yes")
+
+# 取得チャンクの原文表示（デバッグ用）。公開デモでは原文を露出させないため既定 false。
+# 出典は記事タイトル＋リンクのみで示し、本文は元サイトへ送客する方針（CLAUDE.md §8）。
+SHOW_DEBUG_CHUNKS = os.getenv("SHOW_DEBUG_CHUNKS", "false").lower() in ("true", "1", "yes")
 
 # --- 音声URL入力（YouTube / ニコニコ動画）---
 # yt-dlpによるダウンロードは各サービスの利用規約に抵触しうるため、

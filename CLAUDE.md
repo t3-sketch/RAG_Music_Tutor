@@ -2,7 +2,7 @@
 
 このドキュメントは、Claude（および他のAIアシスタント/コラボレーター）がこのリポジトリで作業する際のオンボーディング資料。プロジェクトの目的・アーキテクチャ・設計判断・作業規約をまとめる。
 
-最終更新: 2026-07-16（Phase 5: 評価セット60問化・検索層評価まで完了 / RAGAS未実施）
+最終更新: 2026-07-19（Phase 5: 評価セット66問化・検索層ベースライン再計測完了 / RAGAS未実施）
 
 ---
 
@@ -140,23 +140,23 @@ uv run python experiments/evaluation.py
   - レビュー完了（2026-07-16）: 優先バッチ24件（flags付き+confidence low/med）を NotebookLM+人手で検証（ADOPT 13 / EXCLUDE 11）。残り80件（全て confidence high）を **NotebookLM API 経由で検証**（`experiments/apply_nblm_review.py`）→ **ADOPT 27 / EXCLUDE 52 / 保留 1**。
   - **重要な発見: 元パイプラインの `answerable_standalone=true` ラベルは楽観的すぎた。** 除外率65%で、実体はサイトへの機能要望・誤字報告・学習相談・自作曲の分析依頼など「記事では原理的に答えられない投稿」。フォーラムを評価セット化する際は answerable 判定こそが本体の作業。
   - **NotebookLM運用の知見**: ワークシートを**ソースとして**読ませると内容を部分的にしか拾えず「質問文が省略されていて読めない」と誤EXCLUDEする（10問中5問で発生）。**質問文をプロンプトに直接インライン**すれば解消（記事側の読み取りは正常）。「読めなかった」起因のEXCLUDEは判定として無効なので、`apply_nblm_review.py` が正規表現で検出して保留に回す。実在しないslugも `data/raw` 照合で自動排除。
-- **統合eval set `experiments/build_eval_set.py` → `data/eval/eval_set_merged.json`**: silver 20 + forum(reviewed) を統一スキーマにまとめる。各問に `reviewed` フラグ（未検証ラベルを必ず区別）。`--include-pending` で未レビュー分をタグ付き投入も可。現状 **60問**（silver 20 + forum reviewed 40、うち AND 22 / OR 18 / single 20）。
+- **統合eval set `experiments/build_eval_set.py` → `data/eval/eval_set_merged.json`**: silver 20 + forum(reviewed) を統一スキーマにまとめる。各問に `reviewed` フラグ（未検証ラベルを必ず区別）。`--include-pending` で未レビュー分をタグ付き投入も可。現状 **66問**（silver 20 + forum reviewed 40 + generated 6、うち AND 27 / OR 19 / single 20）。generated 6 は度数→コード足場の検証用（キー明示の度数質問）。
 - **指標を多ソース対応に刷新（`experiments/evaluation.py`）**: 主指標を **recall@k**（top-kに入った正解記事の割合・連続値）に。加えて **strict hit-rate**（and=全記事必須/or・single=1つでOK）と MRR。source/match_type/difficulty で**層別集計**（全体平均が比較質問の弱点を隠すため）。単一ソース経路は不変で、silver 20問が過去値 0.85/0.792 を完全再現（回帰なし確認）。
 - **paired difference 分析（`experiments/paired_diff.py`）**: 保存済み per-question から fixed vs structure を突き合わせ、平均差の bootstrap 95%CI と Wilcoxon 検定を出す。
-- **検索層スコア（60問, 2026-07-16, `data/eval/scores_20260716.json`）**:
+- **検索層スコア（66問, 2026-07-19, `data/eval/scores_20260719.json`）**:
 
   | | recall@5 | strict_hit | MRR |
   | --- | --- | --- | --- |
-  | fixed | 0.594 | 0.500 | 0.602 |
-  | structure | 0.625 | 0.533 | 0.579 |
+  | fixed | 0.571 | 0.470 | 0.581 |
+  | structure | 0.599 | 0.500 | 0.562 |
 
-- **AND質問（多ソース比較・統合, n=22）は依然壊滅的**: structure recall 0.386 / strict_hit 0.136。n=9→22 に増えても改善せず、**偶然では説明できない確かな弱点**として定量化できた（単一ソースhit-rateでは見えない）。→ ハイブリッド検索/クエリ拡張の動機が確定。
-- **paired diff の結論（fixed→structure, n=60）**: 3指標すべて有意差なし。recall +0.031（CI[−0.053,+0.114], p=0.58）、strict_hit +0.033（p=0.69）、**MRRは符号反転 −0.023**（改善9/悪化10, p=0.41）。60問中49問が同一。**n=33でも n=60でも結論は変わらず、retrieval指標で structure 優位は主張できない。** silver 20問は fixed/structure で1問も動かない（retrieval指標はもともと両者を区別しない。structureの価値は過去のRAGAS context_precision +0.134 でのみ観測されている）。
-- **当初「100問で検定力確保」の見込みは外れた**: answerable が実際には少なく（除外52件）採れたのは60問。かつ retrieval 指標自体が両chunking戦略を区別しないため、**問題は n ではなく指標の選択**の可能性が高い。structure の評価は RAGAS context_precision で行うべき。
+- **AND質問（多ソース比較・統合, n=27）は依然壊滅的**: structure recall 0.352 / strict_hit 0.111。n=9→27 に増えても改善せず、**偶然では説明できない確かな弱点**として定量化できた（単一ソースhit-rateでは見えない）。→ ハイブリッド検索/クエリ拡張の動機が確定。
+- **paired diff の結論（fixed→structure, n=60時点。66問での再計算は未実施）**: 3指標すべて有意差なし。recall +0.031（CI[−0.053,+0.114], p=0.58）、strict_hit +0.033（p=0.69）、**MRRは符号反転 −0.023**（改善9/悪化10, p=0.41）。60問中49問が同一。**n=33でも n=60でも結論は変わらず、retrieval指標で structure 優位は主張できない。** silver 20問は fixed/structure で1問も動かない（retrieval指標はもともと両者を区別しない。structureの価値は過去のRAGAS context_precision +0.134 でのみ観測されている）。
+- **当初「100問で検定力確保」の見込みは外れた**: answerable が実際には少なく（除外52件）採れたのは66問（forum由来40 + silver 20 + generated 6）。かつ retrieval 指標自体が両chunking戦略を区別しないため、**問題は n ではなく指標の選択**の可能性が高い。structure の評価は RAGAS context_precision で行うべき。
 
 ### 次にやること（Phase 5 続き）
-1. **RAGAS（生成層）を60問で実行** — 未実施。`LLM_PROVIDER=nvidia` に切替えて（生成=NVIDIA / judge=Gemini flash-lite の分離を維持、GeminiのRPD枯渇回避）、まず **context_precision の paired diff**（structureの真価が出る指標・コール数最小）から。
-2. 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）← AND recall 0.386 (n=22) という確かな動機
+1. **RAGAS（生成層）を66問で実行** — 未実施。生成=Gemini flash-lite / judge=MiniMax M3（OpenRouter, `JUDGE_PROVIDER=openrouter`）にプロバイダ分離済み（2026-07-19、.env）。まず **context_precision の paired diff**（structureの真価が出る指標・コール数最小）から。
+2. 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）← AND recall 0.352 (n=27) という確かな動機
 3. 保留1件 + 未レビュー26件（answerable=false 判定済み含む）の扱いは必要になったら
 
 ### 既知の未解決事項

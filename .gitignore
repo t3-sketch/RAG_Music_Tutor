@@ -42,3 +42,22 @@ scripts/check_gated.py
 docs/graph-rag-experiment-plan.md
 docs/mvp-sharing-runbook.md
 docs/deployment-infra-study.md
+
+# ハイブリッド検索実験の中間生成物。structure_points.jsonl は記事本文そのもの、
+# qe_cache は eval set の質問文を含む。実験ランナー（condition_*.py）は公開するが
+# 生成データは corpus 同様に非公開。
+experiments/_hybrid_scratch/
+
+# hybrid collection の ingest 実装。上の ingest 非公開方針に合わせる。
+experiments/ingest_hybrid.py
+
+# OMT 評価セット構築系（scripts/build_omt_entries.py 等と同じ扱い）
+experiments/build_omt_eval.py
+experiments/prompts/
+
+# forum レビュー結果（投稿本文と正解slugを含む評価データ。data/eval/ と同じ扱い）
+result.md
+
+# 別プロジェクト・ツールの残骸
+nimbalyst-local/
+.playwright-mcp/

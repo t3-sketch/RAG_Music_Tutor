@@ -28,14 +28,17 @@ BATCH = 256
 
 def copy_collection(src: QdrantClient, dest: QdrantClient, collection: str) -> int:
     if not dest.collection_exists(collection):
+        # 次元・距離をハードコードせず、ソース側の構成をそのまま写す。
+        # music_theory_hybrid のような named vectors(dense/sparse) もこれで通る
+        # （固定 VectorParams だと unnamed 単一ベクトルしか作れない）。
+        params = src.get_collection(collection).config.params
         dest.create_collection(
             collection_name=collection,
-            vectors_config=models.VectorParams(
-                size=config.EMBED_DIM,
-                distance=models.Distance.COSINE,
-            ),
+            vectors_config=params.vectors,
+            sparse_vectors_config=params.sparse_vectors,
         )
-        print(f"created collection: {collection} ({config.EMBED_DIM}dim / cosine)")
+        print(f"created collection: {collection} (vectors={params.vectors}, "
+              f"sparse={params.sparse_vectors})")
 
     copied = 0
     offset = None

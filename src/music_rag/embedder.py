@@ -46,6 +46,25 @@ def embed_query(text: str) -> list[float]:
     return _encode_dense([text])[0]
 
 
+def embed_query_hybrid(text: str) -> tuple[list[float], dict[int, float]]:
+    """検索クエリを dense + sparse の両方へ1パスで変換する（ハイブリッド検索用）。
+
+    sparse は BGE-M3 の lexical_weights（token id -> 重み）。dense が意味側、
+    sparse が語彙側を拾う。度数表記のような字面が効く質問で効く想定。
+
+    返り値は素の list / dict（numpy を境界に出さない = このモジュールの規約）。
+    """
+    output = _model().encode(
+        [text],
+        return_dense=True,
+        return_sparse=True,
+        return_colbert_vecs=False,
+    )
+    dense = [float(x) for x in output["dense_vecs"][0]]
+    sparse = {int(k): float(v) for k, v in output["lexical_weights"][0].items()}
+    return dense, sparse
+
+
 def embed_documents(texts: list[str]) -> list[list[float]]:
     """ドキュメント群を 1024 次元の dense ベクトル列へ変換する。"""
     if not texts:

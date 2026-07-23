@@ -2,6 +2,8 @@
 
 生成層プロバイダは config.LLM_PROVIDER（gemini / nvidia、env で切替）で選ぶ。
 どちらも OpenAI SDK で叩けるので client の base_url/api_key/model だけ差し替える。"""
+from functools import lru_cache
+
 from openai import OpenAI
 from openai import InternalServerError
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -18,6 +20,13 @@ def _make_client() -> tuple[OpenAI, str]:
             timeout=config.LLM_TIMEOUT_SEC,
         )
         return client, config.NVIDIA_LLM_MODEL
+    if config.LLM_PROVIDER == "openrouter":
+        client = OpenAI(
+            api_key=config.OPENROUTER_API_KEY,
+            base_url=config.OPENROUTER_BASE_URL,
+            timeout=config.LLM_TIMEOUT_SEC,
+        )
+        return client, config.OPENROUTER_MODEL
     # 既定: gemini（OpenAI互換エンドポイント）
     client = OpenAI(
         api_key=config.GEMINI_API_KEY,
@@ -25,6 +34,53 @@ def _make_client() -> tuple[OpenAI, str]:
         timeout=config.LLM_TIMEOUT_SEC,
     )
     return client, config.GEN_GEMINI_MODEL
+
+# 検索前の query expansion。実験（条件C）で測ったプロンプトをそのまま使う
+# ── 文面を変えると測った recall は担保されない（docs/retrieval-experiment-results.md）。
+EXPAND_SYSTEM = """あなたは日本語の音楽理論に詳しい検索クエリ拡張アシスタントです。
+ユーザーの質問文を書き換えず、そのまま残したうえで、検索に効く同義語・正規化表記を追記してください。
+
+ルール:
+- 元の質問文は1行目にそのまま残す（削除・言い換え禁止）。
+- 2行目以降に、度数表記の正規化（例: 「5-1」→「V-I」「ドミナントモーション」「正格終止」）や
+  同義の理論用語をスペース区切りで追記する。
+- 解説文や長文は書かない。追記は短い語・フレーズのみ。
+- 出力はその2ブロックだけ（前置き・後書きなし）。
+"""
+
+
+@lru_cache(maxsize=256)
+def expand_query(question: str) -> str:
+    """質問文に同義語・正規化表記を追記して検索に渡す文字列を返す。
+
+    QE は検索精度の上積みであって必須経路ではない。失敗・遅延したら黙って
+    元の質問文を返す（QE の不調でユーザーの検索そのものを落とさない）。
+    評価バッチと違いレート制限の sleep は入れない（対話1件ごとの呼び出しなので）。
+    """
+    if not config.ENABLE_QE:
+        return question
+    try:
+        client = OpenAI(
+            api_key=config.GEMINI_API_KEY,
+            base_url=config.GEMINI_BASE_URL,
+            timeout=config.QE_TIMEOUT_SEC,
+        )
+        resp = client.chat.completions.create(
+            model=config.QE_GEMINI_MODEL,
+            messages=[
+                {"role": "system", "content": EXPAND_SYSTEM},
+                {"role": "user", "content": question},
+            ],
+            temperature=0,
+        )
+        expanded = (resp.choices[0].message.content or "").strip()
+    except Exception:
+        return question
+    if not expanded:
+        return question
+    # モデルが元文を落とした場合の保険: 先頭に元質問を戻す
+    return expanded if question in expanded else f"{question}\n{expanded}"
+
 
 SYSTEM_PROMPT = """あなたは音楽理論と楽曲分析の専門家です。
 以下の参考資料（音楽理論教材からの抜粋）を根拠に、ユーザーの質問へ日本語で丁寧かつ具体的に答えてください。

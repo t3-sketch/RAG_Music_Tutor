@@ -118,24 +118,65 @@ def search(
         with_payload=True,
     )
 
-    results: list[dict] = []
-    for point in response.points:
-        payload = point.payload or {}
-        results.append(
-            {
-                "text": payload.get("text", ""),
-                "source": payload.get("source", ""),
-                # チャンク単位の追跡用（MLOps trace / eval のドリルダウンで
-                # 「記事のどこが引かれたか」を特定する。upsert時から全payloadに存在）
-                "chunk_index": payload.get("chunk_index"),
-                "score": float(point.score),
-                # 出典表示用メタ（旧ポイントには無いのでNone → UI側でフォールバック）
-                "heading": payload.get("heading"),
-                "title": payload.get("title"),
-                "source_url": payload.get("source_url"),
-                "book": payload.get("book"),
-                "license": payload.get("license"),
-                "license_url": payload.get("license_url"),
-            }
-        )
-    return results
+    return [_to_result(p) for p in response.points]
+
+
+def _to_result(point) -> dict:
+    """Qdrant の ScoredPoint を main.py / UI が期待する素の dict にする。"""
+    payload = point.payload or {}
+    return {
+        "text": payload.get("text", ""),
+        "source": payload.get("source", ""),
+        # チャンク単位の追跡用（MLOps trace / eval のドリルダウンで
+        # 「記事のどこが引かれたか」を特定する。upsert時から全payloadに存在）
+        "chunk_index": payload.get("chunk_index"),
+        "score": float(point.score),
+        # 出典表示用メタ（旧ポイントには無いのでNone → UI側でフォールバック）
+        "heading": payload.get("heading"),
+        "title": payload.get("title"),
+        "source_url": payload.get("source_url"),
+        "book": payload.get("book"),
+        "license": payload.get("license"),
+        "license_url": payload.get("license_url"),
+    }
+
+
+def search_hybrid(
+    dense_vector: list[float],
+    sparse_vector: dict[int, float],
+    top_k: int = config.TOP_K,
+    collection: str | None = None,
+) -> list[dict]:
+    """dense と sparse を別々に引いて RRF で融合する（named vectors 前提）。
+
+    dense-only の `search` とは collection もベクトル構成も別なので、経路を分けて
+    共存させる（ENABLE_HYBRID=false で従来経路へ切り戻せる）。
+    """
+    coll = collection or config.HYBRID_COLLECTION
+    client = _client()
+    if not client.collection_exists(coll):
+        return []
+
+    response = client.query_points(
+        collection_name=coll,
+        prefetch=[
+            models.Prefetch(
+                query=dense_vector,
+                using="dense",
+                limit=config.HYBRID_PREFETCH_LIMIT,
+            ),
+            models.Prefetch(
+                query=models.SparseVector(
+                    indices=list(sparse_vector.keys()),
+                    values=list(sparse_vector.values()),
+                ),
+                using="sparse",
+                limit=config.HYBRID_PREFETCH_LIMIT,
+            ),
+        ],
+        # RRF: スコア尺度の違う dense/sparse を順位だけで融合する（正規化不要）
+        query=models.FusionQuery(fusion=models.Fusion.RRF),
+        limit=top_k,
+        with_payload=True,
+    )
+    return [_to_result(p) for p in response.points]

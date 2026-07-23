@@ -42,6 +42,10 @@ SCORES_DIR = config.EVAL_DIR
 # env（RAGAS_JUDGE_MODEL）で上書き可能。
 RAGAS_JUDGE_MODEL = os.getenv("RAGAS_JUDGE_MODEL", config.GEMINI_MODEL)
 
+# judge のプロバイダ。gemini（既定）/ openrouter。
+# 生成層が gemini のときは openrouter にして別プロバイダへ逃がすと bias 分離を保てる。
+JUDGE_PROVIDER = os.getenv("JUDGE_PROVIDER", "gemini")
+
 # 質問間ウェイト（秒）。judge・embeddings とも Gemini 無料枠に集中するため、
 # RPD枯渇（20問中11問しか回らなかった問題）を踏まえてNVIDIA分離時より余裕を持たせる。
 RAGAS_SLEEP_SEC = int(os.getenv("RAGAS_SLEEP_SEC", "15"))
@@ -216,10 +220,16 @@ def main() -> None:
 def _ragas_setup():
     """RAGAS評価用のLLM/embeddingsをセットアップする。
 
-    judge LLM は Gemini の OpenAI互換エンドポイント経由（AsyncOpenAI）。
+    judge LLM は OpenAI互換エンドポイント経由（AsyncOpenAI）。
     google-genai ネイティブクライアントはRAGASのアダプタと相性が悪いため
     （instructor/litellmアダプタが非同期判定に失敗する）、この経路を使う。
-    embeddings（AnswerRelevancy / AnswerCorrectness のみ使用）も Gemini。
+
+    judge のプロバイダは env JUDGE_PROVIDER で切替（gemini / openrouter）。
+    生成層が gemini のとき judge も gemini だと self-preference bias が乗るため、
+    openrouter 経由で別プロバイダ（MiniMax / Kimi / Qwen / DeepSeek）に逃がせるようにしてある。
+    embeddings（AnswerRelevancy / AnswerCorrectness のみ使用）は judge に関わらず Gemini
+    （埋め込みは bias の論点ではなく、OpenRouter は embeddings を提供しないため）。
+
     max_tokens はデフォルトだと日本語＋複数statement照合で出力が途中で切れる
     （IncompleteOutputException）ため、明示的に大きめに設定する。
     """
@@ -228,12 +238,17 @@ def _ragas_setup():
     from google import genai
     from ragas.embeddings import GoogleEmbeddings
 
-    async_client = AsyncOpenAI(
-        api_key=config.GEMINI_API_KEY,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-    )
+    if JUDGE_PROVIDER == "openrouter":
+        judge_key, judge_base = config.OPENROUTER_API_KEY, config.OPENROUTER_BASE_URL
+        judge_model = os.getenv("RAGAS_JUDGE_MODEL", config.OPENROUTER_MODEL)
+    else:
+        judge_key, judge_base = config.GEMINI_API_KEY, config.GEMINI_BASE_URL
+        judge_model = RAGAS_JUDGE_MODEL
+    print(f"  judge: provider={JUDGE_PROVIDER} model={judge_model}")
+
+    async_client = AsyncOpenAI(api_key=judge_key, base_url=judge_base)
     ragas_llm = llm_factory(
-        RAGAS_JUDGE_MODEL,
+        judge_model,
         provider="openai",
         client=async_client,
         max_tokens=8192,   # ← デフォルトだと途中で切れるので増やす

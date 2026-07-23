@@ -42,7 +42,12 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.3.0",
+    "matplotlib>=3.11.0",
+    "pandas>=3.0.3",
     "pytest>=9.1.1",
+    "scikit-learn>=1.9.0",
+    "umap-learn>=0.5.12",
 ]
 
 [tool.hatch.build.targets.wheel]

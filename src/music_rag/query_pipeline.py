@@ -11,8 +11,16 @@ from music_rag import llm
 
 def answer_query(query: str, top_k: int = config.TOP_K,
                  audio_path: str | None = None) -> dict:
-    query_vector = embedder.embed_query(query)          # step1: embed
-    found = retriever.search(query_vector, top_k)        # step2: search（既定で music_theory）
+    # step1: query expansion（条件C。ENABLE_QE=false で素通し。失敗時も query が返る）
+    search_query = llm.expand_query(query)
+
+    # step2: embed → search。ハイブリッド（dense+sparse を RRF 融合）が既定。
+    # ENABLE_HYBRID=false で従来の dense-only 経路へ切り戻す。
+    if config.ENABLE_HYBRID:
+        dense, sparse = embedder.embed_query_hybrid(search_query)
+        found = retriever.search_hybrid(dense, sparse, top_k)
+    else:
+        found = retriever.search(embedder.embed_query(search_query), top_k)
 
     audio_desc = None                                    # step3: 音声（任意。ローカルパス or URL）
     if audio_path:
