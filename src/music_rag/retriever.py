@@ -155,7 +155,15 @@ def search_hybrid(
     coll = collection or config.HYBRID_COLLECTION
     client = _client()
     if not client.collection_exists(coll):
-        return []
+        # dense 版の search() と違い、ここは空を返さず落とす。
+        # ハイブリッド経路は QDRANT_COLLECTION を見ない（HYBRID_COLLECTION が別系統）ため、
+        # 取り違えると「別コーパスを配信する / 無言で0件になる」まで気づけない。
+        # 設定ミスは検索結果ではなく例外で表に出す。
+        raise RuntimeError(
+            f"ハイブリッド検索の collection '{coll}' が {config.QDRANT_URL} に無い。"
+            f" HYBRID_COLLECTION を設定するか、ENABLE_HYBRID=false で dense 経路に切り戻す"
+            f"（dense 側の切替は QDRANT_COLLECTION）。"
+        )
 
     response = client.query_points(
         collection_name=coll,
