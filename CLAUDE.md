@@ -33,7 +33,7 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 | 検索クエリ拡張 (QE) | Gemini `gemini-3.1-flash-lite` | `llm.expand_query()`。度数表記の正規化・同義語を**追記**（書き換えではない）。`config.QE_GEMINI_MODEL` はjudgeの `GEMINI_MODEL` と**意図的に分離**（judge差し替えで本番検索が黙って変わるのを防ぐ）。3.5-flash-lite は実験で不採用（`docs/retrieval-experiment-results-qe35.md`） |
 | 生成層 LLM | **Gemini `gemini-3.5-flash-lite`**（既定、`config.GEN_GEMINI_MODEL`） / NVIDIA Build (`meta/llama-3.3-70b-instruct`) / OpenRouter | `llm.py` 経由（いずれもOpenAI互換API）。**`config.LLM_PROVIDER`（env `LLM_PROVIDER=gemini\|nvidia\|openrouter`）で切替**。NVIDIAは応答が遅くUIが待たされるため既定をGeminiに（2026-07-16）。flash（非lite）はRPD 20で評価バッチが枯渇するため lite を既定に（2026-07-22）。Claude APIはMVPでは不使用 |
 | 評価 | RAGAS 0.4.3 | judge: Gemini `gemini-3.1-flash-lite`（`config.GEMINI_MODEL`。生成層とは別プロバイダに分離しbias回避）。langchain-community==0.3.27 ピン留め必須 |
-| デプロイ | Hugging Face Spaces (Streamlit SDK, 無料CPU) | `main` push で GitHub Actions が同期。オープンコーパス版(`music_theory_open`)を公開。URL入力はオフ |
+| デプロイ | Hugging Face Spaces (Streamlit SDK, 無料CPU) | `main` push で GitHub Actions が同期。**2026-07-22 に SoundQuest版(`music_theory_hybrid`)へ切替**（それまではオープンコーパス版 `music_theory_open`）。**URL入力は利用規約の関係で常にオフ**、音声はファイルアップロードのみ。設定は Space の Variables/Secrets（`ENABLE_HYBRID` / `ENABLE_AUDIO_INPUT` / `GEMINI_API_KEY` 等）で、リポジトリには入らない |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
 | UI | Streamlit (`apps/streamlit_app.py`) |  |
 | 音響解析 | librosa + BTC-ISMIR19 (large_voca) | `src/music_rag/model/` 配下にvendoring済み（MIT） |

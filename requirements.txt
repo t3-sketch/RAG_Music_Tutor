@@ -17,9 +17,9 @@ python-dotenv>=1.2.2
 FlagEmbedding>=1.4.0
 torch>=2.2
 
-# 音声解析（librosa + BTC）は公開版では入れない。
-# ENABLE_AUDIO_INPUT=false のとき query_pipeline は audio を import しない設計なので、
-# 依存ごと落としてビルド時間とイメージサイズを削る（job timeout 対策・2026-07-22）。
-# 音声つきでデプロイする場合のみ以下を戻す:
-# librosa>=0.11.0
-# soundfile>=0.12
+# 音声解析（librosa + BTC。BTCの重みはリポジトリ同梱の12MB .pt）。
+# 依存chainは約218MB（llvmlite 130MB + scipy 70MB が大半）。2026-07-16 のビルド
+# job timeout の主因は preload_from_hub の不要な2.1GBの方だったので、それを削った
+# 現状ならこの追加分は収まる。numpy は numba が numpy<2.5 を宣言しているので pin 不要。
+librosa>=0.11.0
+soundfile>=0.12
