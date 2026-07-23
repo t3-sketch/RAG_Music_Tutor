@@ -3,7 +3,7 @@
 describe は analyze() の結果を生成層プロンプト用の日本語に変換する。
 「LLMに何を見せるか」の契約なので、フォーマット変更は生成品質に直結する。
 """
-from music_rag.audio import describe
+from music_rag.audio import describe, search_terms
 
 
 def _chord(name: str, start: float, end: float) -> dict:
@@ -54,3 +54,40 @@ class TestDescribe:
         out = describe({"tempo": 120.0, "key": "C major", "chords": chords})
         assert "（以降省略）" not in out
         assert "C → G" in out
+
+
+class TestSearchTerms:
+    """search_terms は検索クエリ用。describe と違い時系列進行を含めない
+    （含めると拍・小節の記事が上位に来て逆効果になることを実測で確認済み）。"""
+
+    def test_key_and_main_chords_only(self):
+        out = search_terms({
+            "tempo": 161.0, "key": "E major",
+            "chords": [
+                {"chord": "E maj", "start": 0.0, "end": 8.0},
+                {"chord": "A maj", "start": 8.0, "end": 12.0},
+                {"chord": "B maj", "start": 12.0, "end": 13.0},
+            ],
+        })
+        assert out == "キー E major コード進行 E maj A maj B maj"
+
+    def test_no_arrow_or_timestamps(self):
+        """時系列記号・秒数が混ざると検索ノイズになる。"""
+        out = search_terms({
+            "tempo": 120.0, "key": "C major",
+            "chords": [{"chord": "C maj", "start": 0.0, "end": 4.0}] * 3,
+        })
+        assert "→" not in out and "秒" not in out
+
+    def test_no_chords_gives_key_only(self):
+        assert search_terms({"tempo": 120.0, "key": "C major", "chords": []}) == "キー C major"
+
+    def test_no_chord_segments_excluded(self):
+        out = search_terms({
+            "tempo": 120.0, "key": "C major",
+            "chords": [
+                {"chord": "N", "start": 0.0, "end": 9.0},
+                {"chord": "F maj", "start": 9.0, "end": 10.0},
+            ],
+        })
+        assert out == "キー C major コード進行 F maj"

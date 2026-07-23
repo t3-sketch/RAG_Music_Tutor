@@ -211,6 +211,32 @@ def _merge_adjacent_chords(raw_chords: list[tuple[float, float, str]]) -> list[d
     return merged
 
 
+def _main_chords(analysis: dict, limit: int = 8) -> list[tuple[str, float]]:
+    """出現時間の合計が長い順に (コード名, 秒数) を返す。無音区間 "N" は除く。"""
+    durations: dict[str, float] = {}
+    for c in analysis.get("chords", []):
+        if c["chord"] == "N":
+            continue
+        durations[c["chord"]] = durations.get(c["chord"], 0.0) + (c["end"] - c["start"])
+    return sorted(durations.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+
+
+def search_terms(analysis: dict) -> str:
+    """analyze()の結果を「検索クエリに足す語」にする（describe とは別用途）。
+
+    describe() は生成層プロンプト向けで時系列進行まで含めるが、こちらは検索向けに
+    キーと主要コードだけへ絞る。時系列（E maj → A maj → ...）を検索クエリに混ぜると
+    拍・小節の記事（time-and-bar / timefeel）が上位を占めて逆効果になることを実測で確認した。
+
+    音声つきの質問は本文が「楽曲の解説をして」のように情報量が薄く、これが無いと
+    検索が総論記事（guide / tonality）しか引けない。解析結果を検索にも渡すための関数。
+    """
+    parts = [f"キー {analysis['key']}"]
+    if main := _main_chords(analysis):
+        parts.append("コード進行 " + " ".join(name for name, _ in main))
+    return " ".join(parts)
+
+
 def describe(analysis: dict) -> str:
     """analyze()の結果をLLMプロンプト用の日本語テキストに変換する。
 
@@ -227,11 +253,7 @@ def describe(analysis: dict) -> str:
 
     chords = [c for c in analysis.get("chords", []) if c["chord"] != "N"]
     if chords:
-        # 出現時間の合計が長い順に主要コードを挙げる
-        durations: dict[str, float] = {}
-        for c in chords:
-            durations[c["chord"]] = durations.get(c["chord"], 0.0) + (c["end"] - c["start"])
-        main_chords = sorted(durations.items(), key=lambda kv: kv[1], reverse=True)[:8]
+        main_chords = _main_chords(analysis)
         lines.append(
             "- 主要コード（出現時間順）: "
             + ", ".join(f"{name}（{dur:.1f}秒）" for name, dur in main_chords)
