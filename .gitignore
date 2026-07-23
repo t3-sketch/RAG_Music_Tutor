@@ -39,6 +39,9 @@ src/music_rag/custom_types.py
 scripts/scrape_all.py
 scripts/ingest_all.py
 scripts/check_gated.py
+# corpus をローカルQdrant→Qdrant Cloudへ転送する運用スクリプト。
+# 上と同じ理由（アプリの実行には不要・corpus運用側）で非公開にする。
+scripts/copy_collection.py
 docs/graph-rag-experiment-plan.md
 docs/mvp-sharing-runbook.md
 docs/deployment-infra-study.md

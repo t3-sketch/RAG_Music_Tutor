@@ -47,7 +47,7 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY") or None
 QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", COLLECTION_NAME)
 
-# Qdrant Cloud（マネージド）へのコピー先。scripts/copy_collection.py が参照する。
+# Qdrant Cloud（マネージド）へのコピー先。corpus転送スクリプト（非公開）が参照する。
 # ローカルQdrant → Cloud への公開用collection転送でのみ使い、本番の検索経路
 # （QDRANT_URL）とは分離する。URL は :6333 を付けない（Cloud は 443/https 受け）。
 QDRANT_CLOUD_URL = os.getenv("QDRANT_CLOUD_URL") or None
