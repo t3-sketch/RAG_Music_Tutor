@@ -69,10 +69,12 @@ if st.button("質問する", type="primary") and query.strip():
             continue
         seen_sources.add(c["source"])
         if c.get("source_url"):
-            # 出典メタ付きコーパス（OMT等）: 章タイトルへのリンクで表示
-            st.markdown(f"- [{c.get('title') or c['source']}]({c['source_url']})")
+            # 出典メタ付きコーパス（OMT等）は章タイトル、SoundQuest系は title を
+            # 持たないので slug 末尾（＝URLの最終セグメント）をラベルにする。
+            label = c.get("title") or c["source"].rsplit("_", 1)[-1]
+            st.markdown(f"- [{label}]({c['source_url']})")
         else:
-            # 旧コーパス（メタなし）へのフォールバック
+            # URL を復元できないコーパスへのフォールバック
             st.markdown(f"- `{c['source']}`")
 
     # CC BY-SA等の帰属表示: contexts中のユニークな教材ごとにライセンスを明記

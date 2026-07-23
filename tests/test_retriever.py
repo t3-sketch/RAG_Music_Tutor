@@ -80,6 +80,35 @@ class TestSearch:
         assert retriever.search([0.0]) == []
 
 
+class TestSourceUrl:
+    """slug → URL の復元。出典リンクの表示がこの契約に乗っている。"""
+
+    def test_payload_url_wins(self):
+        assert retriever._source_url(
+            {"source": "soundquest.jp_a_b", "source_url": "https://example.com/x"}
+        ) == "https://example.com/x"
+
+    def test_soundquest_slug_restored(self):
+        assert retriever._source_url(
+            {"source": "soundquest.jp_quest_chord_chord-mv1_chord-functions"}
+        ) == "https://soundquest.jp/quest/chord/chord-mv1/chord-functions/"
+
+    def test_hyphens_inside_segments_are_kept(self):
+        """区切りは "_" だけ。セグメント内の "-" を壊すと404になる。"""
+        assert retriever._source_url({"source": "soundquest.jp_quest_prerequisite_scale-3"}) \
+            == "https://soundquest.jp/quest/prerequisite/scale-3/"
+
+    def test_double_slash_in_slug_is_collapsed(self):
+        """scrape時のURL重複（chord-mv8）。"//" のままだと余計な301を挟む。"""
+        assert retriever._source_url(
+            {"source": "soundquest.jp_quest_chord_chord-mv8__respell-and-neglected-intervals"}
+        ) == "https://soundquest.jp/quest/chord/chord-mv8/respell-and-neglected-intervals/"
+
+    def test_other_corpus_without_url_is_none(self):
+        assert retriever._source_url({"source": "omt_chapter_1"}) is None
+        assert retriever._source_url({}) is None
+
+
 class TestUpsertValidation:
     def test_empty_chunks_short_circuit(self):
         assert retriever.upsert([], []) == {"ingested": 0, "source": ""}

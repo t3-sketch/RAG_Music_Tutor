@@ -14,6 +14,7 @@ main.py が期待するインターフェース:
 """
 from __future__ import annotations
 
+import re
 import uuid
 from functools import lru_cache
 
@@ -121,6 +122,33 @@ def search(
     return [_to_result(p) for p in response.points]
 
 
+def _source_url(payload: dict) -> str | None:
+    """出典URL。payload に無ければ SoundQuest系の source から復元する。
+
+    OMT系は ingest 時に source_url を payload へ入れているが、SoundQuest系の
+    既存collectionは source（slug）と chunk_index しか持たない。slug は元URLの
+    "/" を "_" に置換したものなので逆変換できる。
+
+    data/raw 191件で検証: scrape時のURLは末尾"/"の有無が揺れている（160件は無し、
+    31件は有り）が、サイトの正規形は"/"付き（無い形は301で付きへ飛ぶ実測済み）。
+    そこで復元側で正規形に寄せる。リダイレクト任せにしないのは、出典リンクが
+    余計な往復なしで直接記事に着くようにするため。
+
+    ponytail: 本来は ingest で payload に持たせるべき値を読み出し側で補っている。
+    記事タイトルなど他のメタも出したくなったら、その時点で payload へ backfill する
+    （set_payload はベクトルを触らないので再embeddingは不要）。
+    """
+    if url := payload.get("source_url"):
+        return url
+    source = payload.get("source", "")
+    if source.startswith("soundquest.jp_"):
+        # 末尾 "/" がサイトの正規形（無いと301される）。slug 側は元URLの揺れを
+        # そのまま持っており、"//" を含むものが1件ある（chord-mv8）ので潰す。
+        path = re.sub(r"/{2,}", "/", source.replace("_", "/")).rstrip("/")
+        return f"https://{path}/"
+    return None
+
+
 def _to_result(point) -> dict:
     """Qdrant の ScoredPoint を main.py / UI が期待する素の dict にする。"""
     payload = point.payload or {}
@@ -134,7 +162,7 @@ def _to_result(point) -> dict:
         # 出典表示用メタ（旧ポイントには無いのでNone → UI側でフォールバック）
         "heading": payload.get("heading"),
         "title": payload.get("title"),
-        "source_url": payload.get("source_url"),
+        "source_url": _source_url(payload),
         "book": payload.get("book"),
         "license": payload.get("license"),
         "license_url": payload.get("license_url"),
