@@ -2,7 +2,7 @@
 
 このドキュメントは、Claude（および他のAIアシスタント/コラボレーター）がこのリポジトリで作業する際のオンボーディング資料。プロジェクトの目的・アーキテクチャ・設計判断・作業規約をまとめる。
 
-最終更新: 2026-07-19（Phase 5: 評価セット66問化・検索層ベースライン再計測完了 / RAGAS未実施）
+最終更新: 2026-07-22（Phase 6: 検索層に条件C〈hybrid + QE〉を本番投入 / RAGAS未実施）
 
 ---
 
@@ -28,9 +28,10 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 
 | レイヤー | 技術 | 備考 |
 | --- | --- | --- |
-| Embeddings | BGE-M3 | dense 1024次元。FlagEmbeddingでローカル実行のみ（リモートバックエンドは2026-07-13に全廃。DeepInfra経路は一度も使われず、NVIDIA Build版bge-m3はサーバー側500で使用不可のため）。ハイブリッド検索は将来課題 |
-| Vector DB | Qdrant | ローカルは Docker（bind mount: `data/qdrant/`）、公開デモは Qdrant Cloud |
-| 生成層 LLM | **Gemini `gemini-3.5-flash`**（既定） / NVIDIA Build (`meta/llama-3.3-70b-instruct`) | `llm.py` 経由（両者ともOpenAI互換API）。**`config.LLM_PROVIDER`（env `LLM_PROVIDER=gemini\|nvidia`）で切替**。NVIDIAは応答が遅くUIが待たされるため既定をGeminiに（2026-07-16）。**評価バッチ（RAGAS）は `LLM_PROVIDER=nvidia` を推奨** — GeminiはRPD上限が厳しく、judge(Gemini)とRPDを食い合うため。Claude APIはMVPでは不使用 |
+| Embeddings | BGE-M3 | dense 1024次元 + sparse（lexical_weights）。FlagEmbeddingでローカル実行のみ（リモートバックエンドは2026-07-13に全廃。DeepInfra経路は一度も使われず、NVIDIA Build版bge-m3はサーバー側500で使用不可のため）。**ハイブリッド検索を2026-07-22に本番投入**（`embed_query_hybrid()`。dense専用の `embed_query()` も main.py 用に併存） |
+| Vector DB | Qdrant | ローカルは Docker（bind mount: `data/qdrant/`）、公開デモは Qdrant Cloud。**ハイブリッド用は named vectors (dense/sparse) の別collection `music_theory_hybrid`** で、dense専用の `music_theory_structure` とは併存 |
+| 検索クエリ拡張 (QE) | Gemini `gemini-3.1-flash-lite` | `llm.expand_query()`。度数表記の正規化・同義語を**追記**（書き換えではない）。`config.QE_GEMINI_MODEL` はjudgeの `GEMINI_MODEL` と**意図的に分離**（judge差し替えで本番検索が黙って変わるのを防ぐ）。3.5-flash-lite は実験で不採用（`docs/retrieval-experiment-results-qe35.md`） |
+| 生成層 LLM | **Gemini `gemini-3.5-flash-lite`**（既定、`config.GEN_GEMINI_MODEL`） / NVIDIA Build (`meta/llama-3.3-70b-instruct`) / OpenRouter | `llm.py` 経由（いずれもOpenAI互換API）。**`config.LLM_PROVIDER`（env `LLM_PROVIDER=gemini\|nvidia\|openrouter`）で切替**。NVIDIAは応答が遅くUIが待たされるため既定をGeminiに（2026-07-16）。flash（非lite）はRPD 20で評価バッチが枯渇するため lite を既定に（2026-07-22）。Claude APIはMVPでは不使用 |
 | 評価 | RAGAS 0.4.3 | judge: Gemini `gemini-3.1-flash-lite`（`config.GEMINI_MODEL`。生成層とは別プロバイダに分離しbias回避）。langchain-community==0.3.27 ピン留め必須 |
 | デプロイ | Hugging Face Spaces (Streamlit SDK, 無料CPU) | `main` push で GitHub Actions が同期。オープンコーパス版(`music_theory_open`)を公開。URL入力はオフ |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
@@ -154,13 +155,32 @@ uv run python experiments/evaluation.py
 - **paired diff の結論（fixed→structure, n=60時点。66問での再計算は未実施）**: 3指標すべて有意差なし。recall +0.031（CI[−0.053,+0.114], p=0.58）、strict_hit +0.033（p=0.69）、**MRRは符号反転 −0.023**（改善9/悪化10, p=0.41）。60問中49問が同一。**n=33でも n=60でも結論は変わらず、retrieval指標で structure 優位は主張できない。** silver 20問は fixed/structure で1問も動かない（retrieval指標はもともと両者を区別しない。structureの価値は過去のRAGAS context_precision +0.134 でのみ観測されている）。
 - **当初「100問で検定力確保」の見込みは外れた**: answerable が実際には少なく（除外52件）採れたのは66問（forum由来40 + silver 20 + generated 6）。かつ retrieval 指標自体が両chunking戦略を区別しないため、**問題は n ではなく指標の選択**の可能性が高い。structure の評価は RAGAS context_precision で行うべき。
 
-### 次にやること（Phase 5 続き）
+### Phase 6: 検索層に条件C（hybrid + QE）を本番投入 — 完了（2026-07-22）
+
+**2×2 要因計画**（dense/sparse × QE の効果を分離して測る）を回し、条件C を採用。詳細は `docs/retrieval-experiment-{plan,results,results-qe35}.md`。
+
+| 条件 | 構成 | recall@5 | strict_hit | MRR | AND (n=27) | single (n=20) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Base | structure dense のみ | 0.599 | 0.500 | 0.562 | 0.352 | 0.850 |
+| A | dense+sparse | — | — | — | — | — |
+| B | dense + QE | 0.636 | 0.500 | 0.614 | 0.407 | 0.900 |
+| **C** | **dense+sparse + QE** | **0.674** | **0.545** | **0.615** | **0.426** | **1.000** |
+
+- **有意ではない**（C vs Base recall +0.076, 95%CI[−0.010, +0.162], p=0.099）。n=66 では CI が 0 をまたぐ。それでも採用したのは**全指標で符号が一貫して正**、かつ silver 20問が 1.000 になったため。「有意差あり」とは主張しない。
+- **QE モデルを新しくすると悪化した**（3.1-flash-lite → 3.5-flash-lite で4比較すべて符号が負）。原因仮説: 新モデルの展開文がより饒舌でコーパス語彙から離れた。**「新しい＝この用途で良い」は成り立たない**という実例。QE は 3.1-flash-lite 固定。
+- 本番実装は実験コードのコピーではない。**評価バッチ用の 5秒レート制限 sleep は本番に持ち込まず**、`lru_cache` + 10秒timeout + **失敗時 raw question フォールバック**（QE不調で検索そのものを落とさない）に置き換えた。
+- 切り戻し: `ENABLE_HYBRID=false` / `ENABLE_QE=false` で個別に。
+
+**デプロイ時の落とし穴（重要）**: `ENABLE_HYBRID=true` のとき検索先は `HYBRID_COLLECTION` で、**`QDRANT_COLLECTION` は参照されない**。開放コーパス版（`music_theory_open`）は `QDRANT_COLLECTION` で切り替えていたため、この非対称を知らずにデプロイすると公開デモが無言で別コーパスを配信する。collection 不在時は空リストではなく `RuntimeError` を投げて設定ミスを表に出す実装にしてある。
+
+### 次にやること
 1. **RAGAS（生成層）を66問で実行** — 未実施。生成=Gemini flash-lite / judge=MiniMax M3（OpenRouter, `JUDGE_PROVIDER=openrouter`）にプロバイダ分離済み（2026-07-19、.env）。まず **context_precision の paired diff**（structureの真価が出る指標・コール数最小）から。
-2. 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）← AND recall 0.352 (n=27) という確かな動機
+2. notation_variant タグ付与 → 表記ゆれ層で条件C を撃ち直す（現状は全66問平均での近似）。
 3. 保留1件 + 未レビュー26件（answerable=false 判定済み含む）の扱いは必要になったら
 
 ### 既知の未解決事項
-- **「5-1と4-1の違い」「7-1と4-3の解決の違い」（度数表記の比較質問）は構造chunkingでも context&#95;precision/recall = 0.0** → chunkingでは解けない検索課題（表記ゆれ・複数記事にまたがる比較）。ハイブリッド検索/クエリ拡張の動機。
+- ~~**「5-1と4-1の違い」（度数表記の比較質問）は構造chunkingでも context&#95;precision/recall = 0.0**~~ → **検索は解決（2026-07-22）**。QE が `V-I / 正格終止 / 変格終止` を補い、hybrid で cadence 記事を top5 中4件ヒット。**ただし解決を確認したのは retrieval のみで、RAGAS context&#95;precision では未再計測**。「7-1と4-3の解決の違い」も未確認。
+- **AND質問（多ソース比較・統合）は改善したが依然弱い**: recall 0.352 → 0.426 (n=27)。single が 1.000 に対して大きく劣る。次の打ち手はメタデータ or reranking。
 - **answer&#95;correctness は依然低い（0.37）** → 粒度ミスマッチ疑い。生成層・評価セット側の課題。
 - ~~構造chunkingを本番採用するか~~ → **検索先としての採用は完了済み**（refactor Phase 2 で `CHUNK_STRATEGY` の default が `"structure"` になり、`COLLECTION_NAME` = `music_theory_structure` が本番の検索先。`CHUNK_STRATEGY=fixed` でA/B用に旧経路へ切替可）。
 - **旧 `music_theory` collection（固定長chunking・1,502 points）をQdrantから削除するかは未決定** → TM判断待ち（残す場合はA/B比較用という位置づけ）。
@@ -188,9 +208,9 @@ uv run python experiments/evaluation.py
 - MVPは MajMin + 7th まで
 - テンションコード（9th/11th/13th）は将来課題。音源分離が前提条件で、学術的にも未解決に近い領域（BTC-FDAA-FGF等の論文で確認済み）
 
-### 次のマイルストーン（Phase 5 進行中 → §4 Phase 5 参照）
-- **forum残り80件のレビュー → eval set 100問超 → 検定力確保**（最優先。これが無いと以下の効果を統計的に主張できない）
-- 度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）← AND質問 recall 0.26 という定量的動機がついた
+### 次のマイルストーン（→ §4 Phase 6 参照）
+- ~~forum残り80件のレビュー → eval set 100問超~~ → **完了（66問止まり）**。answerable が想定より少なく100問に届かなかった。§4 Phase 5 参照。
+- ~~度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）~~ → **hybrid + QE で対応（Phase 6）**。残るは metadata / reranking。
 - 旧 `music_theory` collection（fixed chunking）を削除するかの判断（A/B比較の検定力が付くまで残置が無難）
 - 音声解析結果によるretrievalクエリ拡張（現状は生成層にのみ寄与）
 
@@ -201,7 +221,7 @@ uv run python experiments/evaluation.py
 - テンションコード認識（音源分離が前提）
 - 音源分離の再検討（テンション対応時に限り）
 - 生成層LLMをユーザーが選べる機能（アダプターパターン）
-- ハイブリッド検索（sparse + dense）
+- ~~ハイブリッド検索（sparse + dense）~~ → **Phase 6 で完了（2026-07-22）**
 - リッチなチャンクメタデータ
 
 ---

@@ -17,6 +17,9 @@ python-dotenv>=1.2.2
 FlagEmbedding>=1.4.0
 torch>=2.2
 
-# 音声解析（librosa + BTC。BTCの重みはリポジトリ同梱の12MB .pt）
-librosa>=0.11.0
-soundfile>=0.12
+# 音声解析（librosa + BTC）は公開版では入れない。
+# ENABLE_AUDIO_INPUT=false のとき query_pipeline は audio を import しない設計なので、
+# 依存ごと落としてビルド時間とイメージサイズを削る（job timeout 対策・2026-07-22）。
+# 音声つきでデプロイする場合のみ以下を戻す:
+# librosa>=0.11.0
+# soundfile>=0.12

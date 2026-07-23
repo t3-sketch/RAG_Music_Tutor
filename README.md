@@ -9,10 +9,12 @@ app_file: apps/streamlit_app.py
 python_version: "3.11"
 pinned: false
 short_description: 日本語の音楽理論教材を根拠に出典つきで答えるRAG
-# BGE-M3 をビルド時にイメージへ焼き込み、コールドスタート時の約4.6GB
-# ランタイムDL（FlagEmbedding が snapshot_download でリポジトリ丸ごと取得）を回避する。
+# BGE-M3 をビルド時にイメージへ焼き込み、コールドスタート時のランタイムDLを回避する。
+# ただしリポジトリ丸ごと（4.3GB）だとビルドが job timeout する（2026-07-16 に発生）。
+# 実際に必要なのは約2.1GBで、残りは FlagEmbedding が使わない onnx/（2.1GB）と imgs/。
+# sparse_linear.pt はハイブリッド検索（return_sparse=True）に必須なので落とさないこと。
 preload_from_hub:
-  - BAAI/bge-m3
+  - BAAI/bge-m3 config.json,pytorch_model.bin,tokenizer.json,tokenizer_config.json,special_tokens_map.json,sentencepiece.bpe.model,colbert_linear.pt,sparse_linear.pt,sentence_bert_config.json,modules.json,config_sentence_transformers.json,1_Pooling/config.json
 ---
 
 # music-rag
