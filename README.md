@@ -185,24 +185,48 @@ preload_from_hub:
 
 検索層で条件C（hybrid + QE）を採用したあと、**その改善が回答品質まで届いているか**を
 NotebookLM を第三の arm に加えて測りました（[docs/experiment-4-three-way.md](docs/experiment-4-three-way.md)）。
-judge は生成層（Gemini 系）とも参照回答（Claude 製）とも別系統になるよう MiniMax M3（OpenRouter）を使っています。
+
+**役割ごとにモデルを分離**しています。同じモデルが生成・参照・採点を兼ねると self-preference bias が
+構造的に混入するため、3系統を独立させました。
+
+| 役割 | モデル |
+| --- | --- |
+| 生成層（music-rag / NotebookLM 共通） | Gemini `gemini-3.5-flash-lite` |
+| 参照回答（golden） | Claude Sonnet 5 |
+| judge | MiniMax M3（OpenRouter） |
+
+**何を測れて何を測れないか**。NotebookLM はチャンク列（`retrieved_contexts`）を返さないため、
+retrieval を前提にする指標は原理的に計算できません。空欄にせず、測れない理由を明記しています。
+
+| 指標 | music-rag Base | music-rag C | NotebookLM |
+| --- | --- | --- | --- |
+| factual&#95;correctness (precision/recall) | ○ | ○ | ○ ← 唯一の公平な直接対決 |
+| answer&#95;correctness / answer&#95;relevancy | — | ○ | ○ |
+| faithfulness / context&#95;precision | ○ | ○ | n/a — `retrieved_contexts` が無く原理的に計算不能 |
+| 検索層 recall@k / nDCG / strict_hit | ○ | ○ | n/a — NotebookLM は記事単位を返さず粒度が非対称なので測らない |
+| 音声 → コード進行 → 理論説明 | ○ | ○ | × 原理的に不可（音声を受け取れない） |
+
+**実測結果**（factual&#95;correctness と answer 系。詳細は [docs/experiment-4-three-way.md](docs/experiment-4-three-way.md)）:
 
 | arm | 回答長 | factual p/r | answer&#95;correctness | answer&#95;relevancy | faithfulness |
 | --- | --- | --- | --- | --- | --- |
-| NotebookLM | 862字 | 0.353 / 0.572 | **0.595** | 0.854 | — |
+| NotebookLM | 862字 | 0.353 / 0.572 | **0.595** | 0.854 | n/a |
 | 条件C（hybrid+QE） | 1384字 | 0.287 / 0.494 | 0.473 | 0.855 | 0.626 |
 | Base（dense のみ） | 1364字 | 0.283 / 0.460 | — | — | 0.632 |
 
-- **検索層の改善は生成層に伝わりませんでした**。条件C vs Base は 4 指標すべて CI が 0 をまたぎます
+- **検索層の改善は生成層に伝わりませんでした**。条件C vs Base は4指標すべて CI が0をまたぎます
   （p=0.60〜0.89）。検索では recall@5 +0.076 / nDCG +0.043 と一貫して優位だったにもかかわらずです。
-- **NotebookLM の優位の大半は回答長の交絡**でした。回答長との相関は precision r=−0.214 /
-  recall r=−0.387。参照回答が「1〜3文・200字以内」なので、長い回答が機械的に不利になります。
-  **回答長が近い 18 問だけで見ると符号が反転し、条件C が勝ちます**（precision +0.034 / recall +0.047）。
+- **「唯一の公平な直接対決」である factual_correctness の NBLM 優位は、大半が回答長の交絡**でした。
+  回答長との相関は precision r=−0.214 / recall r=−0.387。参照回答が「1〜3文・200字以内」なので、
+  長い回答が機械的に不利になります。**回答長が近い18問だけで見ると符号が反転し、条件C が勝ちます**
+  （precision +0.034 / recall +0.047）。
 - **`answer_relevancy` は完全に同点**（0.8548 vs 0.8541、p=0.936）。「質問に答えているか」では差がつきません。
+- **`answer_correctness` だけは長さで説明できない差でした**（Δ=+0.122、95%CI[+0.076,+0.169]、
+  49勝17敗、p<0.0001）。このセッション最強の統計的差で、生成層の唯一の実質的な弱点です。
 - **AND / OR 質問は NotebookLM でも解けません**（三者とも single から半減）。
   複数記事にまたがる統合は検索手法の巧拙ではなく構造的な壁である、という傍証になりました。
 - **`faithfulness` 0.626 に対し `context_precision` 0.855、相関は r=0.208 と弱い**。
-  「良い文脈を渡したのに接地していない」が 132 問中 25 問（19%）。生成層側の未解決事項です。
+  「良い文脈を渡したのに接地していない」が132問中25問（19%）。生成層側の未解決事項です。
 
 **この計測で判明した、評価手法そのものの限界**（下記「ロードマップ／今後」の動機）:
 
