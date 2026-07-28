@@ -106,7 +106,7 @@ preload_from_hub:
 | テキスト質問の回答品質（answer&#95;correctness, n=66） | **0.595** | 0.473 |
 
 **テキスト質問の品質では NotebookLM に負けています。** ただしこの差の大半は回答長の交絡で、
-回答長を揃えた 18 問だけで見ると符号が反転します（後述「[生成層の三つ巴比較](#生成層の三つ巴比較n662026-07)」）。
+回答長を揃えた 18 問だけで見ると符号が反転します（後述「[検索層と生成層の比較](#検索層と生成層の比較n662026-07)」）。
 
 差別化の軸は品質のパーセンテージではなく **機能境界** です。NotebookLM は音声を受け取れないため、
 「この曲のコード進行はなぜこう聴こえるのか」という問いには構造的に答えられません。
@@ -120,7 +120,7 @@ preload_from_hub:
   - オープン教材版: Open Music Theory コーパス（Qdrant `music_theory_open`）。`ENABLE_HYBRID=false` で切替。
 - **検索・生成**: 質問 → クエリ拡張 → embed（dense+sparse）→ ハイブリッド検索（RRF）→ generate の E2E が動作します。音声を添えた場合はクエリ拡張の代わりに解析結果（調・主要コード）を検索クエリに追記します。Streamlit UI（`apps/streamlit_app.py`）から利用でき、公開デモは Hugging Face Spaces で稼働します。
 - **音響解析**: 音源のテンポ・キー・コード進行を解析し（BTC-ISMIR19、フォールバックはテンプレートマッチング）、解析結果を根拠に加えた解説を生成します。
-- **評価基盤**: recall@k / strict hit-rate / MRR / nDCG@k（LLM 不使用・常用）と RAGAS（LLM judge・節目のみ）の 2 層評価。66 問の評価セット（silver 20 + フォーラム由来 40 + 生成 6）で、chunking の A/B → 検索層の 2×2 要因計画 → 生成層の三つ巴比較（NotebookLM を含む）まで実施済みです（下記）。
+- **評価基盤**: recall@k / strict hit-rate / MRR / nDCG@k（LLM 不使用・常用）と RAGAS（LLM judge・節目のみ）の 2 層評価。66 問の評価セット（silver 20 + フォーラム由来 40 + 生成 6）で、chunking の A/B → 検索層・生成層の統合比較（NotebookLM を含む）まで実施済みです（下記）。
 
 ---
 
@@ -151,40 +151,13 @@ preload_from_hub:
 
 詳細な per-question 比較は [docs/evaluation.md](docs/evaluation.md) を参照してください。
 
-### 検索層の 2×2 要因計画（n=66、2026-07）
+### 検索層と生成層の比較（n=66、2026-07）
 
 評価セットを 66 問へ拡張し（silver 20 + フォーラム由来 40 + 生成 6）、
-**ハイブリッド検索（dense+sparse）× クエリ拡張（QE）** の効果を分離して測りました。
-主指標は多ソース質問に対応するため hit-rate ではなく **recall@k** です。
-
-| 条件 | 構成 | recall@5 | strict_hit | MRR | AND (n=27) | single (n=20) |
-| --- | --- | --- | --- | --- | --- | --- |
-| Base | dense のみ | 0.599 | 0.500 | 0.562 | 0.352 | 0.850 |
-| B | dense + QE | 0.636 | 0.500 | 0.614 | 0.407 | 0.900 |
-| **C** | **dense+sparse + QE** | **0.674** | **0.545** | **0.615** | **0.426** | **1.000** |
-
-- **統計的に有意ではありません**（C vs Base の recall 差 +0.076、95%CI [−0.010, +0.162]、p=0.099）。
-  n=66 では CI が 0 をまたぎます。それでも採用したのは全指標で符号が一貫して正であり、
-  silver 20 問が 1.000 に達したためで、「有意差あり」とは主張していません。
-- 未解決だった「5-1 と 4-1 の違い」は、QE が `V-I` / `正格終止` / `変格終止` を補うことで
-  該当記事（cadence）を引けるようになりました。**ただし検索段階での解決であり、
-  RAGAS context_precision での再計測は未実施**です。
-- **QE のモデルを新しくすると悪化しました**（`gemini-3.1-flash-lite` → `3.5-flash-lite` で
-  4 比較すべて符号が負）。展開文が饒舌になりコーパス語彙から離れたことが原因と見ています。
-  「新しいモデル＝この用途で良い」は成り立ちませんでした（[docs/retrieval-experiment-results-qe35.md](docs/retrieval-experiment-results-qe35.md)）。
-- **多ソース比較質問（AND, n=27）は改善後も 0.426** で、single の 1.000 に大きく劣ります。
-  メタデータや reranking が次の打ち手です。
-- **nDCG@5 では話が単純ではありません**（Base 0.5345 → C 0.5779、+0.043、p=0.28）。
-  AND 層に限ると B (0.416) > C (0.393) と recall の順序が反転しており、
-  「条件C が全面的に優れている」とは言えません。
-
-実験設計・per-question の結果は [docs/retrieval-experiment-plan.md](docs/retrieval-experiment-plan.md) /
-[docs/retrieval-experiment-results.md](docs/retrieval-experiment-results.md) を参照してください。
-
-### 生成層の三つ巴比較（n=66、2026-07）
-
-検索層で条件C（hybrid + QE）を採用したあと、**その改善が回答品質まで届いているか**を
-NotebookLM を第三の arm に加えて測りました（[docs/experiment-4-three-way.md](docs/experiment-4-three-way.md)）。
+**ハイブリッド検索（dense+sparse）× クエリ拡張（QE）** の効果を検索層で分離して測ったうえで、
+**その改善が回答品質まで届いているか**を NotebookLM を第三の arm に加えて測りました
+（[docs/retrieval-experiment-plan.md](docs/retrieval-experiment-plan.md) /
+[docs/experiment-4-three-way.md](docs/experiment-4-three-way.md)）。
 
 **役割ごとにモデルを分離**しています。同じモデルが生成・参照・採点を兼ねると self-preference bias が
 構造的に混入するため、3系統を独立させました。
@@ -195,24 +168,50 @@ NotebookLM を第三の arm に加えて測りました（[docs/experiment-4-thr
 | 参照回答（golden） | Claude Sonnet 5 |
 | judge | MiniMax M3（OpenRouter） |
 
-**何を測れて何を測れないか**。NotebookLM はチャンク列（`retrieved_contexts`）を返さないため、
-retrieval を前提にする指標は原理的に計算できません。空欄にせず、測れない理由を明記しています。
+比較する arm は **Base（dense のみ）** と **C（dense+sparse + QE、本番採用）**、
+それに **NotebookLM** です。QE 単独の中間条件（B）は本番採用していないため比較表からは外し、
+必要な知見は後述の注記に残します。
 
-| 指標 | music-rag Base | music-rag C | NotebookLM |
+**検索層**（LLM 不使用・常時計測可能。NotebookLM は記事単位の retrieval 結果を公開しないため、
+すべて測定不能です）:
+
+| 指標 | Base（dense のみ） | C（dense+sparse + QE） | NotebookLM |
 | --- | --- | --- | --- |
-| factual&#95;correctness (precision/recall) | ○ | ○ | ○ ← 唯一の公平な直接対決 |
-| answer&#95;correctness / answer&#95;relevancy | — | ○ | ○ |
-| faithfulness / context&#95;precision | ○ | ○ | n/a — `retrieved_contexts` が無く原理的に計算不能 |
-| 検索層 recall@k / nDCG / strict_hit | ○ | ○ | n/a — NotebookLM は記事単位を返さず粒度が非対称なので測らない |
-| 音声 → コード進行 → 理論説明 | ○ | ○ | × 原理的に不可（音声を受け取れない） |
+| recall@5 | 0.599 | **0.674** | n/a |
+| strict_hit | 0.500 | **0.545** | n/a |
+| MRR | 0.562 | **0.615** | n/a |
+| nDCG@5 | 0.5345 | 0.5779 | n/a |
+| AND (n=27) | 0.352 | **0.426** | n/a |
+| single (n=20) | 0.850 | **1.000** | n/a |
 
-**実測結果**（factual&#95;correctness と answer 系。詳細は [docs/experiment-4-three-way.md](docs/experiment-4-three-way.md)）:
+- **統計的に有意ではありません**（C vs Base の recall 差 +0.076、95%CI [−0.010, +0.162]、p=0.099）。
+  n=66 では CI が 0 をまたぎます。それでも採用したのは全指標で符号が一貫して正であり、
+  silver 20 問が 1.000 に達したためで、「有意差あり」とは主張していません。
+- 未解決だった「5-1 と 4-1 の違い」は、QE が `V-I` / `正格終止` / `変格終止` を補うことで
+  該当記事（cadence）を引けるようになりました。**ただし検索段階での解決であり、
+  RAGAS context_precision での再計測は未実施**です。
+- **多ソース比較質問（AND, n=27）は改善後も 0.426** で、single の 1.000 に大きく劣ります。
+  メタデータや reranking が次の打ち手です。
+- **nDCG@5 では話が単純ではありません**（+0.043、p=0.28）。AND 層に限ると、
+  比較表から外した QE 単独条件 B（0.416）が C（0.393）を上回り recall の順序が反転しており、
+  「条件C が全面的に優れている」とは言えません。
+- **QE のモデルを新しくすると悪化しました**（`gemini-3.1-flash-lite` → `3.5-flash-lite` で
+  4 比較すべて符号が負）。展開文が饒舌になりコーパス語彙から離れたことが原因と見ています。
+  「新しいモデル＝この用途で良い」は成り立ちませんでした（[docs/retrieval-experiment-results-qe35.md](docs/retrieval-experiment-results-qe35.md)）。
 
-| arm | 回答長 | factual p/r | answer&#95;correctness | answer&#95;relevancy | faithfulness |
-| --- | --- | --- | --- | --- | --- |
-| NotebookLM | 862字 | 0.353 / 0.572 | **0.595** | 0.854 | n/a |
-| 条件C（hybrid+QE） | 1384字 | 0.287 / 0.494 | 0.473 | 0.855 | 0.626 |
-| Base（dense のみ） | 1364字 | 0.283 / 0.460 | — | — | 0.632 |
+**RAGAS**（LLM judge。詳細は [docs/experiment-4-three-way.md](docs/experiment-4-three-way.md)）:
+
+| 指標 | Base | C | NotebookLM |
+| --- | --- | --- | --- |
+| factual&#95;correctness precision | 0.283 | 0.287 | **0.353** |
+| factual&#95;correctness recall | 0.460 | 0.494 | **0.572** |
+| answer&#95;correctness | 未測定※ | 0.473 | **0.595** |
+| answer&#95;relevancy | 未測定※ | 0.855 | 0.854 |
+| faithfulness | 0.632 | 0.626 | n/a — `retrieved_contexts` が無く原理的に計算不能 |
+| context&#95;precision | 0.859 | 0.855 | n/a — 同上 |
+
+※ Base は比較対象が C/NotebookLM のペアのみで、かつ answer&#95;correctness は1問あたり実測48〜76秒と
+judge 負荷が重いため測定対象から外しました。
 
 - **検索層の改善は生成層に伝わりませんでした**。条件C vs Base は4指標すべて CI が0をまたぎます
   （p=0.60〜0.89）。検索では recall@5 +0.076 / nDCG +0.043 と一貫して優位だったにもかかわらずです。
@@ -227,6 +226,9 @@ retrieval を前提にする指標は原理的に計算できません。空欄�
   複数記事にまたがる統合は検索手法の巧拙ではなく構造的な壁である、という傍証になりました。
 - **`faithfulness` 0.626 に対し `context_precision` 0.855、相関は r=0.208 と弱い**。
   「良い文脈を渡したのに接地していない」が132問中25問（19%）。生成層側の未解決事項です。
+
+実験設計・per-question の結果は [docs/retrieval-experiment-plan.md](docs/retrieval-experiment-plan.md) /
+[docs/retrieval-experiment-results.md](docs/retrieval-experiment-results.md) を参照してください。
 
 **この計測で判明した、評価手法そのものの限界**（下記「ロードマップ／今後」の動機）:
 
