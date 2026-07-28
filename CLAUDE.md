@@ -2,7 +2,7 @@
 
 このドキュメントは、Claude（および他のAIアシスタント/コラボレーター）がこのリポジトリで作業する際のオンボーディング資料。プロジェクトの目的・アーキテクチャ・設計判断・作業規約をまとめる。
 
-最終更新: 2026-07-22（Phase 6: 検索層に条件C〈hybrid + QE〉を本番投入 / RAGAS未実施）
+最終更新: 2026-07-27（Phase 7完了: 生成層RAGAS 198行・欠損ゼロ / NotebookLM との三つ巴比較 / nDCG導入 / expected_source をNBLMで引き直し。あわせて README を現状に同期し、**評価方針を自由記述+LLM judge から MCQ へ転換**する判断を §4 に記載）
 
 ---
 
@@ -32,7 +32,7 @@ SoundQuest（soundquest.jp、作者: 紅雪）の音楽理論記事をcorpusと�
 | Vector DB | Qdrant | ローカルは Docker（bind mount: `data/qdrant/`）、公開デモは Qdrant Cloud。**ハイブリッド用は named vectors (dense/sparse) の別collection `music_theory_hybrid`** で、dense専用の `music_theory_structure` とは併存 |
 | 検索クエリ拡張 (QE) | Gemini `gemini-3.1-flash-lite` | `llm.expand_query()`。度数表記の正規化・同義語を**追記**（書き換えではない）。`config.QE_GEMINI_MODEL` はjudgeの `GEMINI_MODEL` と**意図的に分離**（judge差し替えで本番検索が黙って変わるのを防ぐ）。3.5-flash-lite は実験で不採用（`docs/retrieval-experiment-results-qe35.md`） |
 | 生成層 LLM | **Gemini `gemini-3.5-flash-lite`**（既定、`config.GEN_GEMINI_MODEL`） / NVIDIA Build (`meta/llama-3.3-70b-instruct`) / OpenRouter | `llm.py` 経由（いずれもOpenAI互換API）。**`config.LLM_PROVIDER`（env `LLM_PROVIDER=gemini\|nvidia\|openrouter`）で切替**。NVIDIAは応答が遅くUIが待たされるため既定をGeminiに（2026-07-16）。flash（非lite）はRPD 20で評価バッチが枯渇するため lite を既定に（2026-07-22）。Claude APIはMVPでは不使用 |
-| 評価 | RAGAS 0.4.3 | judge: Gemini `gemini-3.1-flash-lite`（`config.GEMINI_MODEL`。生成層とは別プロバイダに分離しbias回避）。langchain-community==0.3.27 ピン留め必須 |
+| 評価 | RAGAS 0.4.3 | judge: **MiniMax M3（OpenRouter 経由、`config.OPENROUTER_MODEL`）**。Phase 7 で Gemini から切替 — 生成層(Gemini系)とも参照回答(Claude製golden)とも**別系統**にするため。`config.GEMINI_MODEL`（`gemini-3.1-flash-lite`）は embeddings 用と旧judge経路に残存（OpenRouter は embeddings を提供しないため）。langchain-community==0.3.27 ピン留め必須 |
 | デプロイ | Hugging Face Spaces (Streamlit SDK, 無料CPU) | `main` push で GitHub Actions が同期。**2026-07-22 に SoundQuest版(`music_theory_hybrid`)へ切替**（それまではオープンコーパス版 `music_theory_open`）。**URL入力は利用規約の関係で常にオフ**、音声はファイルアップロードのみ。設定は Space の Variables/Secrets（`ENABLE_HYBRID` / `ENABLE_AUDIO_INPUT` / `GEMINI_API_KEY` 等）で、リポジトリには入らない |
 | ジョブオーケストレーション | Inngest (v0.5.18) + FastAPI | FastAPIはInngestアダプター層 |
 | UI | Streamlit (`apps/streamlit_app.py`) |  |
@@ -173,15 +173,69 @@ uv run python experiments/evaluation.py
 
 **デプロイ時の落とし穴（重要）**: `ENABLE_HYBRID=true` のとき検索先は `HYBRID_COLLECTION` で、**`QDRANT_COLLECTION` は参照されない**。開放コーパス版（`music_theory_open`）は `QDRANT_COLLECTION` で切り替えていたため、この非対称を知らずにデプロイすると公開デモが無言で別コーパスを配信する。collection 不在時は空リストではなく `RuntimeError` を投げて設定ミスを表に出す実装にしてある。
 
+### Phase 7: 生成層 RAGAS と三つ巴比較 — 完了（2026-07-26〜27）
+
+詳細は **`docs/experiment-4-three-way.md`**（198行・欠損ゼロ）。実行は `experiments/ragas_three_way.py`
+（`ragas_generation_abc.ipynb` ではなくスクリプトで実施。数時間かかるためチェックポイント再開が要るので）。
+
+| arm | 回答長 | factual p/r | answer_correctness | answer_relevancy | faithfulness | context_prec |
+| --- | --- | --- | --- | --- | --- | --- |
+| NotebookLM | 862字 | 0.353/0.572 | **0.595** | 0.854 | — | — |
+| 条件C | 1384字 | 0.287/0.494 | 0.473 | 0.855 | 0.626 | 0.855 |
+| Base | 1364字 | 0.283/0.460 | — | — | 0.632 | 0.859 |
+
+- **検索層の改善は生成層に伝わらなかった**: 条件C vs Base は4指標すべてCIが0をまたぐ（p=0.60〜0.89）。
+  検索では recall@5 +0.076 / nDCG +0.043 と一貫して優位だったのに、回答品質は動かない。
+- **「NBLM 勝ち」の大半は回答長の交絡**: 回答長との相関は precision r=−0.214 / recall r=−0.387。
+  長さが近い18問だけで見ると**符号が反転して条件Cが勝つ**（precision +0.034 / recall +0.047）。
+  参照が「1〜3文・200字以内」なので長い回答が機械的に不利になる。
+- **長さで説明できない唯一の差が `answer_correctness`**（Δ=+0.122, CI[+0.076,+0.169], 49勝17敗, p<0.0001）。
+- **`answer_relevancy` は完全に同点**（0.8548 vs 0.8541, p=0.936）。「質問に答えているか」では差がない。
+- **AND/OR 層は NotebookLM でも解けない**（三者とも single から半減）。構造的な壁だと補強された。
+- **`faithfulness` 0.626 と低く context_precision 0.855 との相関も弱い（r=0.208）**。
+  「良い文脈を渡したのに接地していない」が132問中25問（19%）。生成層側の未解決事項。
+
 ### 次にやること
-1. **RAGAS（生成層）を66問で実行** — 未実施。生成=Gemini flash-lite / judge=MiniMax M3（OpenRouter, `JUDGE_PROVIDER=openrouter`）にプロバイダ分離済み（2026-07-19、.env）。まず **context_precision の paired diff**（structureの真価が出る指標・コール数最小）から。
-2. notation_variant タグ付与 → 表記ゆれ層で条件C を撃ち直す（現状は全66問平均での近似）。
-3. 保留1件 + 未レビュー26件（answerable=false 判定済み含む）の扱いは必要になったら
+
+0. **評価セットの MCQ 化**（新方針・2026-07-27）— **1〜3 に着手する前にここを決めること。**
+   Phase 7 で見つかった3つのバイアス（judge が音楽的導出を検算できない / 回答長の交絡 r=−0.387 /
+   参照回答の系統汚染）は、個別の不具合ではなく**「自由記述 + LLM judge」という評価形式そのもの**に
+   由来する。音楽ドメインの QA・RAG 研究をサーベイしたところ、MusicTheoryBench (arXiv 2402.16153) /
+   TrustMus (2409.01864) / ArtistMus (2512.05430) / ABC-Eval (2509.23350) / CSyMR (2601.11556) と
+   **例外なく4択 MCQ + 完全一致採点**で、LLM-as-judge を使った先行研究は見つからなかった。
+   MusicTheoryBench の公表値では **GPT-4 の音楽 reasoning が 25.6%（ランダム 25%）** で、
+   judge に音楽的導出を要求する設計自体が成立しない。
+   - 移行方針: 既存66問を A(事実照合) / B(導出) / C(記述) に仕分け、A・B のみ4択化。C は目視用に退避。
+   - 正解位置の均等配置＋選択肢シャッフルの平均（MusicTheoryBench / ArtistMus の作法）。judge 不要。
+   - 誤答選択肢は音楽的に意味を持たせる（従来式解釈・平行調取り違え・半音ずれ）→ 不正解の分布が診断情報になる。
+   - 問題生成は Claude Sonnet 5（生成層の Gemini と別系統に保つ）＋ Batch API。NBLM は使わない
+     （チャンクを指定できず `expected_source` が確定しない／評価対象の arm でもある）。
+   - knowledge 層はチャンク起点で半自動生成でき、**生成元チャンクがそのまま `expected_source` になる**
+     → 後追いのラベル検証工程が不要になる。
+   - **1（noise_sensitivity）は MCQ 化すると不要になる可能性が高い。着手順を先に決める。**
+
+1. **`noise_sensitivity` を回す** — 「条件Cは recall を稼いだ代償にノイズを増やしたか」の担当指標。
+   `max_tokens=8192` では1問目で `IncompleteOutputException`。`RAGAS_JUDGE_MAX_TOKENS=32768` の別パスで。
+2. **`faithfulness` 19%問題の切り分け** — Gemini がコーパスを無視して内部知識で答えている疑い。
+   プロンプト側の指示強化 or 別モデルでの比較。**RAGの存在意義に直結するので優先度高**。
+3. notation_variant タグ付与 → 表記ゆれ層で条件C を撃ち直す（現状は全66問平均での近似）。
+4. 保留1件 + 未レビュー26件（answerable=false 判定済み含む）の扱いは必要になったら
 
 ### 既知の未解決事項
 - ~~**「5-1と4-1の違い」（度数表記の比較質問）は構造chunkingでも context&#95;precision/recall = 0.0**~~ → **検索は解決（2026-07-22）**。QE が `V-I / 正格終止 / 変格終止` を補い、hybrid で cadence 記事を top5 中4件ヒット。**ただし解決を確認したのは retrieval のみで、RAGAS context&#95;precision では未再計測**。「7-1と4-3の解決の違い」も未確認。
 - **AND質問（多ソース比較・統合）は改善したが依然弱い**: recall 0.352 → 0.426 (n=27)。single が 1.000 に対して大きく劣る。次の打ち手はメタデータ or reranking。
-- **answer&#95;correctness は依然低い（0.37）** → 粒度ミスマッチ疑い。生成層・評価セット側の課題。
+- ~~**answer&#95;correctness は依然低い（0.37）** → 粒度ミスマッチ疑い~~ → **粒度ミスマッチで確定（2026-07-27）**。
+  Claude製goldenで撮り直した結果 `answer_correctness` は 0.37 → **0.473**（条件C）に改善したが、
+  診断で原因が割れた: `factual_correctness` は **precision 0.287 / recall 0.494 とどちらも低い**一方、
+  **回答長との相関が precision r=−0.214 / recall r=−0.387** と強い。
+  回答長を揃えた18問で比較すると NotebookLM に対して**符号が反転して勝つ**。
+  つまり低スコアの主因は「事実が違う」ではなく「**参照（1〜3文・200字以内）に対して回答が長すぎる**」。
+  対処するなら生成プロンプトで長さを制御するか、参照の粒度を回答に合わせる。詳細は `docs/experiment-4-three-way.md`。
+- **参照回答（ground&#95;truth）が生成層と同系統で汚染されている（2026-07-23 発見）** — eval set の `ground_truth` は NotebookLM 製＝**Gemini系**で、生成層も Gemini。`answer_correctness` のように **response と reference の両方を見る指標は、同系統モデル同士の一致度を測っているだけ**になりうる（self-preference bias の reference 版）。
+  - 対処: 「参照が要るか」ではなく **「reference がどう使われるか」で汚染度を分類**し、`experiments/ragas_generation_abc.ipynb` の `METRIC_SPECS` に `contamination` として記録した。responseを見ない `context_entity_recall` は汚染小、claim同士をNLI照合する `factual_correctness` は汚染大。
+  - **絶対値は信用せず、条件間の差分として読む**（reference は3条件共通なのでバイアスが相殺される）。公表用の数値は独立系統（Claude等）での参照再生成後。
+  - **`expected_source` は汚染されていない**: `build_omt_eval.py` は NBLM の自己申告（実在しないslugを捏造する）を信じず「どのsourceに接地させたか」で決め打ちする設計。検索評価のラベルとしては健全。汚染しているのは回答テキスト側のみ。
+- **eval set の人力レビュー未実施**（`reviewed=False` が 66問中6問）。集計は必ず `reviewed` で層別する。phase 2 の前提であって phase 1 の障害ではない。
 - ~~構造chunkingを本番採用するか~~ → **検索先としての採用は完了済み**（refactor Phase 2 で `CHUNK_STRATEGY` の default が `"structure"` になり、`COLLECTION_NAME` = `music_theory_structure` が本番の検索先。`CHUNK_STRATEGY=fixed` でA/B用に旧経路へ切替可）。
 - **旧 `music_theory` collection（固定長chunking・1,502 points）をQdrantから削除するかは未決定** → TM判断待ち（残す場合はA/B比較用という位置づけ）。
 - ~~音声つき完全E2E（UI→生成）は未実施~~ → **完了（2026-07-05）**。UI・Inngest両経路でURL入力込みのE2Eを実走確認（Phase 4 参照）。
@@ -212,7 +266,11 @@ uv run python experiments/evaluation.py
 - ~~forum残り80件のレビュー → eval set 100問超~~ → **完了（66問止まり）**。answerable が想定より少なく100問に届かなかった。§4 Phase 5 参照。
 - ~~度数表記の比較質問対策（ハイブリッド検索 / クエリ拡張 / メタデータ）~~ → **hybrid + QE で対応（Phase 6）**。残るは metadata / reranking。
 - 旧 `music_theory` collection（fixed chunking）を削除するかの判断（A/B比較の検定力が付くまで残置が無難）
-- 音声解析結果によるretrievalクエリ拡張（現状は生成層にのみ寄与）
+- ~~音声解析結果によるretrievalクエリ拡張（現状は生成層にのみ寄与）~~ → **完了**。
+  `query_pipeline.py:29,35` で `audio.search_terms()`（調＋主要コードのみ）を検索クエリに追記する。
+  音声ありのときは QE をスキップ（解析由来の語が拡張の役割を兼ねる）。
+  **ただし Inngest 経路（`main.py` の `rag_query`）は旧設計のまま**で、検索の後に解析し
+  `describe()` を生成層にのみ渡す。2経路のふるまいが乖離している点は未解消。
 
 ### バックログ
 - ~~YouTubeリンクからの音声解析~~ → Phase 4 で完了（YouTube / ニコニコURL入力。§4参照）
@@ -223,6 +281,12 @@ uv run python experiments/evaluation.py
 - 生成層LLMをユーザーが選べる機能（アダプターパターン）
 - ~~ハイブリッド検索（sparse + dense）~~ → **Phase 6 で完了（2026-07-22）**
 - リッチなチャンクメタデータ
+- **度数→コード名変換の決定論的ツール化** — LLM に計算させず純関数 + pytest で保証する。
+  Six-Based Minor の度数解決は30行程度で書け、テストが通れば永久に正しい。
+  同じ関数が**評価問題の正解生成器**を兼ねられる（reasoning 層を自動で増やせる）。
+  音響解析（librosa / BTC が計算し LLM は説明のみ）と同じ構成で、
+  CSyMR (2601.11556) / MuseAgent-1 (2601.11968) の「決定論的オペレータへの接地」と一致する方向。
+- Inngest 経路（`main.py`）と同期経路（`query_pipeline.py`）のクエリ構築ロジックの統一
 
 ---
 

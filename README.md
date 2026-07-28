@@ -61,7 +61,7 @@ preload_from_hub:
 | クエリ拡張 | Gemini `gemini-3.1-flash-lite`。度数表記の正規化・同義語を検索前に追記 |
 | 埋め込み | ローカル BGE-M3（FlagEmbedding。Space 内で実行。dense/sparse を1パスで取得） |
 | 生成 | Gemini `gemini-3.5-flash-lite`（OpenAI互換API。`LLM_PROVIDER` で NVIDIA / OpenRouter に切替可） |
-| 音声入力 | ファイルアップロードは有効。URL入力（yt-dlp）は利用規約配慮で無効（`ENABLE_URL_INPUT=false`） |
+| 音声入力 | ファイルアップロード。解析（librosa + BTC-ISMIR19）は Space 内で実行 |
 | 出典表示 | 記事タイトル＋元記事へのリンクのみ。本文は表示しない（`SHOW_DEBUG_CHUNKS=false`） |
 
 - **生成と評価 judge はプロバイダごと分離**: 生成は Gemini、RAGAS の judge は
@@ -90,20 +90,44 @@ preload_from_hub:
 
 ---
 
+## NotebookLM との違い
+
+同じ「自分の資料を根拠に答えるツール」として NotebookLM がありますが、
+このシステムは **音声からの解析** と **検索方式の計測可能性** で線を引いています。
+
+| | NotebookLM | このシステム |
+| --- | --- | --- |
+| テキスト教材の検索・要約 | ✅ | ✅ |
+| 出典の提示 | ✅ | ✅ |
+| **音声ファイルの解析** | ❌ | ✅ librosa + BTC-ISMIR19 |
+| **BPM・キー・コード進行の自動検出** | ❌ | ✅ |
+| 検出結果を教材で裏付けて解説 | ❌ | ✅ 解析結果は検索クエリにも反映（`audio.search_terms()`） |
+| 検索方式の制御・計測 | ❌ ブラックボックス | ✅ dense / sparse / QE を要因計画で分離計測 |
+| テキスト質問の回答品質（answer&#95;correctness, n=66） | **0.595** | 0.473 |
+
+**テキスト質問の品質では NotebookLM に負けています。** ただしこの差の大半は回答長の交絡で、
+回答長を揃えた 18 問だけで見ると符号が反転します（後述「[生成層の三つ巴比較](#生成層の三つ巴比較n662026-07)」）。
+
+差別化の軸は品質のパーセンテージではなく **機能境界** です。NotebookLM は音声を受け取れないため、
+「この曲のコード進行はなぜこう聴こえるのか」という問いには構造的に答えられません。
+
+---
+
 ## 現状（MVP）
 
 - **コーパス**: 2 系統。
   - SoundQuest 版（公開デモの検索対象）: 一般公開記事 162 本を dense+sparse の named vectors で保持（Qdrant `music_theory_hybrid` に 2,355 points、構造ベース chunking）。会員限定記事 29 本は権利配慮のため除外。
   - オープン教材版: Open Music Theory コーパス（Qdrant `music_theory_open`）。`ENABLE_HYBRID=false` で切替。
-- **検索・生成**: 質問 → クエリ拡張 → embed（dense+sparse）→ ハイブリッド検索（RRF）→ generate の E2E が動作します。Streamlit UI（`apps/streamlit_app.py`）から利用でき、公開デモは Hugging Face Spaces で稼働します。
+- **検索・生成**: 質問 → クエリ拡張 → embed（dense+sparse）→ ハイブリッド検索（RRF）→ generate の E2E が動作します。音声を添えた場合はクエリ拡張の代わりに解析結果（調・主要コード）を検索クエリに追記します。Streamlit UI（`apps/streamlit_app.py`）から利用でき、公開デモは Hugging Face Spaces で稼働します。
 - **音響解析**: 音源のテンポ・キー・コード進行を解析し（BTC-ISMIR19、フォールバックはテンプレートマッチング）、解析結果を根拠に加えた解説を生成します。
-- **評価基盤**: hit-rate@k / MRR（常用）と RAGAS 5 指標（節目のみ）の 2 層評価。20 問の Q&A セットで chunking 戦略の A/B 比較を実施済みです（下記）。
+- **評価基盤**: recall@k / strict hit-rate / MRR / nDCG@k（LLM 不使用・常用）と RAGAS（LLM judge・節目のみ）の 2 層評価。66 問の評価セット（silver 20 + フォーラム由来 40 + 生成 6）で、chunking の A/B → 検索層の 2×2 要因計画 → 生成層の三つ巴比較（NotebookLM を含む）まで実施済みです（下記）。
 
 ---
 
 ## 評価と改善の記録
 
-検索層は **hit-rate@k / MRR（LLM 不使用・常時実行可能）** と **RAGAS（LLM judge・節目のみ）** の 2 層で評価しています。
+検索層は **recall@k / strict hit-rate / MRR / nDCG@k（LLM 不使用・常時実行可能）** と
+**RAGAS（LLM judge・節目のみ）** の 2 層で評価しています。
 生成層と評価 judge は、self-preference bias を避けるため意図的に別プロバイダにしています
 （現行: 生成 = Gemini `gemini-3.5-flash-lite`、judge = MiniMax（OpenRouter 経由））。
 なお下表の A/B 実測（2026-07）は当時の生成層 `gemini-3.5-flash` で取得した記録です（[docs/evaluation.md](docs/evaluation.md)）。
@@ -150,9 +174,44 @@ preload_from_hub:
   「新しいモデル＝この用途で良い」は成り立ちませんでした（[docs/retrieval-experiment-results-qe35.md](docs/retrieval-experiment-results-qe35.md)）。
 - **多ソース比較質問（AND, n=27）は改善後も 0.426** で、single の 1.000 に大きく劣ります。
   メタデータや reranking が次の打ち手です。
+- **nDCG@5 では話が単純ではありません**（Base 0.5345 → C 0.5779、+0.043、p=0.28）。
+  AND 層に限ると B (0.416) > C (0.393) と recall の順序が反転しており、
+  「条件C が全面的に優れている」とは言えません。
 
 実験設計・per-question の結果は [docs/retrieval-experiment-plan.md](docs/retrieval-experiment-plan.md) /
 [docs/retrieval-experiment-results.md](docs/retrieval-experiment-results.md) を参照してください。
+
+### 生成層の三つ巴比較（n=66、2026-07）
+
+検索層で条件C（hybrid + QE）を採用したあと、**その改善が回答品質まで届いているか**を
+NotebookLM を第三の arm に加えて測りました（[docs/experiment-4-three-way.md](docs/experiment-4-three-way.md)）。
+judge は生成層（Gemini 系）とも参照回答（Claude 製）とも別系統になるよう MiniMax M3（OpenRouter）を使っています。
+
+| arm | 回答長 | factual p/r | answer&#95;correctness | answer&#95;relevancy | faithfulness |
+| --- | --- | --- | --- | --- | --- |
+| NotebookLM | 862字 | 0.353 / 0.572 | **0.595** | 0.854 | — |
+| 条件C（hybrid+QE） | 1384字 | 0.287 / 0.494 | 0.473 | 0.855 | 0.626 |
+| Base（dense のみ） | 1364字 | 0.283 / 0.460 | — | — | 0.632 |
+
+- **検索層の改善は生成層に伝わりませんでした**。条件C vs Base は 4 指標すべて CI が 0 をまたぎます
+  （p=0.60〜0.89）。検索では recall@5 +0.076 / nDCG +0.043 と一貫して優位だったにもかかわらずです。
+- **NotebookLM の優位の大半は回答長の交絡**でした。回答長との相関は precision r=−0.214 /
+  recall r=−0.387。参照回答が「1〜3文・200字以内」なので、長い回答が機械的に不利になります。
+  **回答長が近い 18 問だけで見ると符号が反転し、条件C が勝ちます**（precision +0.034 / recall +0.047）。
+- **`answer_relevancy` は完全に同点**（0.8548 vs 0.8541、p=0.936）。「質問に答えているか」では差がつきません。
+- **AND / OR 質問は NotebookLM でも解けません**（三者とも single から半減）。
+  複数記事にまたがる統合は検索手法の巧拙ではなく構造的な壁である、という傍証になりました。
+- **`faithfulness` 0.626 に対し `context_precision` 0.855、相関は r=0.208 と弱い**。
+  「良い文脈を渡したのに接地していない」が 132 問中 25 問（19%）。生成層側の未解決事項です。
+
+**この計測で判明した、評価手法そのものの限界**（下記「ロードマップ／今後」の動機）:
+
+1. **judge が音楽的な導出を検算できない** — 度数からコード名への変換を含む問いは、
+   採点する側にも同じ音楽的能力が要ります。
+2. **回答長が機械的な交絡になる** — 参照と回答の粒度が揃っていないと、内容ではなく長さを測ってしまいます。
+3. **参照回答が生成層と同系統モデル製だった** — `answer_correctness` のように response と reference の
+   両方を見る指標は、同系統モデル同士の一致度を測っている可能性があります（self-preference bias の参照版）。
+   なお検索評価のラベル（`expected_source`）は別の手順で引いているため、この汚染を受けていません。
 
 ---
 
@@ -175,8 +234,16 @@ HTTP 経由で公開する必要があり、Inngest の Python SDK が公式に�
   `scrape → chunk → embed → upsert` を Inngest の `step` として実行し、`concurrency=1` で
   メモリ枯渇を防いでいます。
 - **query は同期パイプライン**: UI は質問に対してその場で回答を返す同期性が必要なため、
-  `rag_query` と同じ流れ（embed → search →(audio)→ generate）を Inngest を介さない
-  同期関数（`query_pipeline.py`）として実装しています。Streamlit UI はこれを直接呼び出します。
+  Inngest を介さない同期関数（`query_pipeline.py`）として実装しています。
+  Streamlit UI はこれを直接呼び出します。流れは音声の有無で分岐します。
+  - 音声なし: `クエリ拡張(QE) → embed → hybrid search → generate`
+  - 音声あり: `解析 → search_terms を検索クエリに追記 → embed → hybrid search → generate`
+    （QE はスキップ。解析で得た調・コード名がクエリ拡張の役割を兼ねるため）
+
+> **2つのオーケストレータは現在ふるまいが異なります**。同期経路（`query_pipeline.py`）は
+> 上記のとおり解析結果を検索クエリにも反映しますが、Inngest 経路（`main.py` の `rag_query`）は
+> 検索の後に解析し、`describe()` の結果を生成層にのみ渡す旧設計のままです。
+> 本番 UI が使うのは同期経路のみです。
 
 ```mermaid
 flowchart TD
@@ -192,10 +259,11 @@ flowchart TD
 
     subgraph proc["処理モジュール (pure functions)"]
         ingest[ingest.py<br/>scrape / chunk]
-        embedder[embedder.py<br/>BGE-M3]
-        retriever[retriever.py<br/>Qdrant]
+        embedder[embedder.py<br/>BGE-M3 dense+sparse]
+        retriever[retriever.py<br/>Qdrant hybrid RRF]
+        asrc[audio_source.py<br/>入力 → 一時ファイルパス]
         audio[audio.py<br/>librosa + BTC-ISMIR19]
-        llm[llm.py<br/>Gemini / NVIDIA]
+        llm[llm.py<br/>クエリ拡張 + 解説生成]
     end
 
     subgraph ext["外部"]
@@ -212,10 +280,12 @@ flowchart TD
     RI -->|embed| embedder
     RI -->|upsert| retriever --> QD
 
-    QP -->|embed-query| embedder
-    QP -->|search| retriever --> QD
-    QP -->|analyze-audio| audio
-    QP -->|generate| llm --> GM
+    QP -->|1 音声あり: resolve| asrc
+    QP -->|2 音声あり: analyze| audio
+    QP -->|3 音声なし: expand-query| llm
+    QP -->|4 embed-query| embedder
+    QP -->|5 hybrid-search| retriever --> QD
+    QP -->|6 generate| llm --> GM
 
     config[config.py] -.設定.-> proc
     types[custom_types.py] -.型.-> orch
@@ -238,10 +308,15 @@ flowchart TD
 ### モジュールインターフェース契約
 
 ```text
-embedder.embed_query(str)            -> list[float]            # 1024 次元
+embedder.embed_query(str)            -> list[float]            # 1024 次元（dense のみ）
+embedder.embed_query_hybrid(str)     -> {"dense": list[float], "sparse": dict}
 embedder.embed_documents(list[str])  -> list[list[float]]
 retriever.upsert(chunks, vectors)    -> {"ingested": int, "source": str}
 retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
+retriever.search_hybrid(vecs, top_k) -> [{"text","source","score"}, ...]   # RRF 融合
+audio.analyze(path)                  -> {"tempo","beats","key","chords"}
+audio.describe(analysis)             -> str   # 生成層プロンプト用
+audio.search_terms(analysis)         -> str   # 検索クエリ追記用
 ```
 
 ---
@@ -282,10 +357,11 @@ retriever.search(vector, top_k)      -> [{"text","source","score"}, ...]
 - **UI**: Streamlit（公開デモは Hugging Face Spaces / Streamlit SDK）
 - **取り込みパイプラインの動作検証用**: FastAPI + Inngest
 - **ベクトルDB**: Qdrant（ローカルは Docker、公開デモは Qdrant Cloud。cosine, 1024 次元）
-- **埋め込み**: BGE-M3（dense 1024 次元。FlagEmbedding で自前実行。
-  将来 sparse/hybrid に拡張可能）
+- **埋め込み**: BGE-M3（dense 1024 次元 + sparse `lexical_weights`。FlagEmbedding で自前実行。
+  1 パスで両方取得し、Qdrant Prefetch → RRF で融合。2026-07 に本番投入）
 - **生成**: Gemini `gemini-3.5-flash-lite`（OpenAI互換API。`LLM_PROVIDER` で NVIDIA / OpenRouter に切替可）
-- **評価**: hit-rate@k / MRR（自作）+ RAGAS 0.4（judge は Gemini `gemini-3.1-flash-lite` に分離）
+- **評価**: recall@k / strict hit-rate / MRR / nDCG@k（自作）+ RAGAS 0.4
+  （judge は MiniMax M3 を OpenRouter 経由で使用。生成層とも参照回答とも別系統になるよう分離）
 - **音響解析**: librosa（テンポ・キー）+ BTC-ISMIR19（コード認識、large_voca）
 - **言語/環境**: Python 3.11（conda + uv、src layout パッケージ）
 
@@ -307,9 +383,10 @@ docker compose up -d
 # 3) .env を作成（雛形: .env.example）
 cp .env.example .env
 #   最低限:
-#   NVIDIA_API_KEY   … 生成層（必須）
-#   GEMINI_API_KEY   … RAGAS 評価を回す場合のみ（judge 用）
+#   GEMINI_API_KEY     … 生成層とクエリ拡張（必須。LLM_PROVIDER の既定が gemini）
 #   任意:
+#   NVIDIA_API_KEY                               … LLM_PROVIDER=nvidia に切り替える場合
+#   OPENROUTER_API_KEY                           … RAGAS 評価を回す場合（judge 用）
 #   QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY      … Cloud へ collection を転送する場合
 ```
 
@@ -350,11 +427,30 @@ CHUNK_STRATEGY=fixed uv run streamlit run apps/streamlit_app.py   # 旧chunking�
 - ~~音声入力~~: アップロード音源の解析（librosa + BTC-ISMIR19）と解説生成への接続
 - ~~音声URL入力~~: YouTube / ニコニコ動画URLからの解析（yt-dlp。ローカル個人利用限定の機能で、公開デプロイ時は `ENABLE_URL_INPUT=false` で無効化）
 - ~~公開デプロイ~~: Hugging Face Spaces（Streamlit SDK, 無料CPU）へ公開。生成は Gemini、検索は Qdrant Cloud、埋め込み・音響解析は Space 内で実行。`main` への push で GitHub Actions が自動反映。
-- ~~生成層のプロバイダ移行~~: Gemini 無料枠の RPD 枯渇を避けるため生成を NVIDIA Build に移行。RAGAS judge は bias 回避のため Gemini 側に分離。
+- ~~生成層のプロバイダ移行~~: Gemini 無料枠の RPD 枯渇を避けるため生成層を切替可能に（`LLM_PROVIDER`）。RAGAS judge は bias 回避のため別プロバイダに分離。
+- ~~ハイブリッド検索 + クエリ拡張~~: 2×2 要因計画で dense/sparse × QE の効果を分離計測し、条件C を本番投入（2026-07）。度数表記の比較質問は検索段階では解決。
+- ~~生成層の評価~~: RAGAS の生成指標を n=66 で計測し、NotebookLM を第三の arm に加えた三つ巴比較を実施。**検索層の改善が生成層に伝わらないこと**、および**評価手法そのものに3つのバイアスがあること**を特定（2026-07）。
 
 今後:
 
-- **hybrid / sparse 検索**: BGE-M3 のフラグ切り替えで sparse ベクトルを有効化します。度数表記の比較質問（評価で残った弱点）への対策です。
+- **評価セットの MCQ 化**: 上記の三つ巴比較で、自由記述 + LLM judge という評価形式そのものに
+  バイアス（judge の音楽的導出能力・回答長の交絡・参照回答の系統汚染）があることが分かりました。
+  音楽ドメインの QA / RAG 研究を調べたところ、
+  [MusicTheoryBench](https://arxiv.org/abs/2402.16153) /
+  [TrustMus](https://arxiv.org/abs/2409.01864) /
+  [ArtistMus](https://arxiv.org/abs/2512.05430) /
+  [ABC-Eval](https://arxiv.org/abs/2509.23350) /
+  [CSyMR](https://arxiv.org/abs/2601.11556) と**例外なく4択 MCQ + 完全一致採点**で、
+  自由記述を LLM-as-judge で採点している先行研究は見つかりませんでした。
+  MCQ に作り替えれば上記3つのバイアスは構造的に消えます。
+  knowledge（用語・事実）と reasoning（導出）に層別して測り直します。
+- **度数変換の決定論的ツール化**: 度数からコード名への変換を LLM に推論させず、
+  純関数 + テストで保証する形にします。[CSyMR](https://arxiv.org/abs/2601.11556) は music21 の
+  決定論的オペレータへの接地で分析タスク +5〜7 ポイント、
+  [MuseAgent-1](https://arxiv.org/abs/2601.11968) も同じ方向を報告しており、
+  音響解析（librosa / BTC が計算し、LLM は説明だけを担う）で既に採っている構成と一致します。
+- **多ソース質問への打ち手**: AND / OR 質問は NotebookLM でも解けない構造的な壁でした。
+  メタデータ・reranking・サブクエリ分解のいずれかを試します。
 - **LLM モデルの柔軟性**: ユーザーが好みのモデルを選択できるようにします（生成層は既に OpenAI 互換API化済みで下地はあります）。
 - **メロディ解析（F0）・セグメント分割**: 音響解析の拡張です。
 - **SoundQuest 版の公開**: 権利者の許諾確認後に、フル版（SoundQuest コーパス）の公開可否を判断します。
