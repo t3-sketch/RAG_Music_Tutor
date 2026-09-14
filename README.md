@@ -17,12 +17,32 @@ preload_from_hub:
   - BAAI/bge-m3 config.json,pytorch_model.bin,tokenizer.json,tokenizer_config.json,special_tokens_map.json,sentencepiece.bpe.model,colbert_linear.pt,sparse_linear.pt,sentence_bert_config.json,modules.json,config_sentence_transformers.json,1_Pooling/config.json
 ---
 
-# music-rag
+# Music RAG — 音楽理論を、出典とともに学ぶ
 
-**[▶ デモを試す（Hugging Face Spaces）](https://huggingface.co/spaces/t3-sketch/RAG_Music_Tutor)**
+「ドミナントモーションとは？」のような質問に、教材の関連箇所を検索して、日本語の解説と出典を返すアプリです。音源を添えた質問にも対応します。
+**個人開発：検索・生成パイプライン、UI、比較評価。** 検索で見つけられたか、回答が正しいか、評価指標が目的に合っているかを分けて検証しています。
 
-日本語の音楽理論教材コーパスを根拠に、コード進行・メロディ・リズムに関する質問へ日本語で解説する RAG システムです。
-ユーザーの質問（＋任意で楽曲の音響特徴）に対し、教材から関連箇所を検索し、それを根拠に LLM が解説を生成します。
+**[デモを試す](https://huggingface.co/spaces/t3-sketch/RAG_Music_Tutor)** · [評価結果](docs/evaluation.md) · [検索実験](docs/retrieval-experiment-results.md) · [セットアップ](#セットアップ)
+
+![音楽理論への質問に対し、解説と教材の出典を表示するデモ](docs/demo.png)
+
+*Japanese music-theory RAG with source attribution, optional audio analysis, and retrieval / answer evaluation.*
+
+## 評価から判断したこと
+
+| 比較・観察 | 結果 | 判断・残る課題 |
+| --- | --- | --- |
+| 固定長分割 vs 見出しに沿った分割（20問） | hit-rate@5はともに0.85、context precisionは0.653 → 0.788 | 正解記事の有無だけでは文脈の質を区別できない。構造ベース分割を採用 |
+| dense検索 vs hybrid検索＋クエリ拡張（66問） | recall@5は0.599 → 0.674。ただし95%CIは0をまたぐ（p=0.099） | この評価セットでの数値上昇として扱い、統計的な優位性は主張しない |
+| 検索と回答を別々に評価 | 検索の数値上昇に対し、回答評価4指標では有意差を確認できず | 回答長・参照回答・judgeの影響も点検し、評価設計自体を見直す |
+
+複数記事を必要とする質問の検索と、生成回答の正確さが次の改善対象です。詳細な条件・質問別の結果は下の記録に残しています。
+
+## 仕組み
+
+`質問 → クエリ拡張 → BGE-M3で検索用表現へ変換 → Qdrantのhybrid検索 → LLMで解説・出典を生成`
+
+Python / Streamlit / Qdrant / BGE-M3 / RAGASを使用。音源を添えた場合は、テンポ・キー・コードの解析結果を検索にも利用します。
 
 > **コーパスの扱い**:
 > 検索対象は SoundQuest（soundquest.jp）の記事コーパスです。著作権は原著者に帰属し、**利用許諾は打診中**。
@@ -36,16 +56,9 @@ preload_from_hub:
 > オープンライセンス教材（Open Music Theory）版のコーパス（Qdrant `music_theory_open`）も併存しており、
 > `ENABLE_HYBRID=false` で切り替えられます。コードとアーキテクチャは両系統で共通です。
 
----
 
-## Demo
-
-> 質問を入力すると、教材から関連箇所を検索し、それを根拠に日本語の解説を生成します。
-> 解説の出典となった教材を併記します。
-
-![demo](docs/demo.png)
-
----
+<details>
+<summary>詳細：デプロイ・開発背景・実験記録・設計・セットアップ</summary>
 
 ## 公開デモ（デプロイ構成）
 
@@ -489,3 +502,5 @@ CHUNK_STRATEGY=fixed uv run streamlit run apps/streamlit_app.py   # 旧chunking�
   （Jonggwon Park, "A Bi-Directional Transformer for Musical Chord Recognition", ISMIR 2019）
   の一部をvendoringしています（MIT License, Copyright (c) 2019 Jonggwon Park）。
   ライセンス全文は [src/music_rag/model/LICENSE_BTC-ISMIR19](src/music_rag/model/LICENSE_BTC-ISMIR19) を参照してください。
+
+</details>
