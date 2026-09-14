@@ -58,7 +58,7 @@ Python / Streamlit / Qdrant / BGE-M3 / RAGASを使用。音源を添えた場合
 
 
 <details>
-<summary>詳細：デプロイ・開発背景・実験記録・設計・セットアップ</summary>
+<summary>詳細：デプロイ・開発背景・実験記録・設計</summary>
 
 ## 公開デモ（デプロイ構成）
 
@@ -406,36 +406,6 @@ audio.search_terms(analysis)         -> str   # 検索クエリ追記用
 
 ---
 
-## セットアップ
-
-前提: Docker, Python 3.11+, conda, uv
-（URL入力機能を使う場合は ffmpeg も必要: `brew install ffmpeg`。動かなくなったらまず `uv lock --upgrade-package yt-dlp` で yt-dlp を更新）
-
-```bash
-# 1) Python 環境（music_rag パッケージが editable install される）
-conda activate rag-music-theory
-uv sync
-
-# 2) Qdrant（Docker）を起動
-docker compose up -d
-
-# 3) .env を作成（雛形: .env.example）
-cp .env.example .env
-#   最低限:
-#   GEMINI_API_KEY     … 生成層とクエリ拡張（必須。LLM_PROVIDER の既定が gemini）
-#   任意:
-#   NVIDIA_API_KEY                               … LLM_PROVIDER=nvidia に切り替える場合
-#   OPENROUTER_API_KEY                           … RAGAS 評価を回す場合（judge 用）
-#   QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY      … Cloud へ collection を転送する場合
-```
-
-> コマンドはすべてリポジトリルートから実行してください（データパスは `./data` 基準です。
-> 別の場所から実行する場合は環境変数 `MUSIC_RAG_DATA_DIR` で上書きできます）。
-
-> **教材コーパスについて**: 著作権の都合により、コーパス本体（`data/`）はリポジトリに含めていません。
-> コードとアーキテクチャは閲覧できますが、動作には別途コーパスの取り込みが必要です。
-> 動作の様子は上記 Demo をご覧ください。
-
 ## 使い方
 
 ```bash
@@ -504,3 +474,34 @@ CHUNK_STRATEGY=fixed uv run streamlit run apps/streamlit_app.py   # 旧chunking�
   ライセンス全文は [src/music_rag/model/LICENSE_BTC-ISMIR19](src/music_rag/model/LICENSE_BTC-ISMIR19) を参照してください。
 
 </details>
+
+## セットアップ
+
+前提: Docker, Python 3.11+, conda, uv
+（URL入力機能を使う場合は ffmpeg も必要: `brew install ffmpeg`。動かなくなったらまず `uv lock --upgrade-package yt-dlp` で yt-dlp を更新）
+
+```bash
+# 1) Python 環境（music_rag パッケージが editable install される）
+conda activate rag-music-theory
+uv sync
+
+# 2) Qdrant（Docker）を起動
+docker compose up -d
+
+# 3) .env を作成（雛形: .env.example）
+cp .env.example .env
+#   最低限:
+#   GEMINI_API_KEY     … 生成層とクエリ拡張（必須。LLM_PROVIDER の既定が gemini）
+#   任意:
+#   NVIDIA_API_KEY                               … LLM_PROVIDER=nvidia に切り替える場合
+#   OPENROUTER_API_KEY                           … RAGAS 評価を回す場合（judge 用）
+#   QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY      … Cloud へ collection を転送する場合
+```
+
+> コマンドはすべてリポジトリルートから実行してください（データパスは `./data` 基準です。
+> 別の場所から実行する場合は環境変数 `MUSIC_RAG_DATA_DIR` で上書きできます）。
+
+> **教材コーパスについて**: 著作権の都合により、コーパス本体（`data/`）はリポジトリに含めていません。
+> コードとアーキテクチャは閲覧できますが、動作には別途コーパスの取り込みが必要です。
+> 動作の様子は上記 Demo をご覧ください。
+
