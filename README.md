@@ -19,7 +19,7 @@ preload_from_hub:
 
 # music-rag
 
-**[▶ デモを試す（Hugging Face Spaces）](https://huggingface.co/spaces/t3-sketch/RAG_Music_Tutor)**
+Hugging Face Spacesでの公開は終了しました。以下のデモ画像・デプロイ構成は公開時の記録です。
 
 日本語の音楽理論教材コーパスを根拠に、コード進行・メロディ・リズムに関する質問へ日本語で解説する RAG システムです。
 ユーザーの質問（＋任意で楽曲の音響特徴）に対し、教材から関連箇所を検索し、それを根拠に LLM が解説を生成します。
