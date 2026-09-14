@@ -1,5 +1,21 @@
 # 検索層 2×2 要因実験 — 実行ログと結果（条件 A/B/C）
 
+<a id="evidence"></a>
+## 判断から実物を確認する
+
+2026-09-14に追加した事後の案内です。下の実行記録は2026-07-21時点として読みます。
+
+- **課題・比較**：必要な記事の取得を増やすため、Base / +sparse / +QE / 両方を比較。条件は§1、平均は§4、対応付き差・CIは§5。
+- **判断**：条件Cを採用したが、recall差の95%CIは0をまたぐ。全体平均での数値上昇と統計的な優位性を区別する。§6にある表記ゆれ層の主指標未評価も残る。
+- **実験コード**：[denseとhybridの検索経路](https://github.com/t3-sketch/RAG_Music_Tutor/blob/64bc594157cec6cea2d0caeae655efb4ae737d6e/experiments/retrieval_exp_common.py#L148)／[条件ごとの採点](https://github.com/t3-sketch/RAG_Music_Tutor/blob/64bc594157cec6cea2d0caeae655efb4ae737d6e/experiments/retrieval_exp_common.py#L230)。
+- **公開アプリの実装**：[search_hybrid](https://github.com/t3-sketch/RAG_Music_Tutor/blob/64bc594157cec6cea2d0caeae655efb4ae737d6e/src/music_rag/retriever.py#L183)。実験時は本番を変更せず、後から本番へ採用した経路であるため、下の「本番は不変」は実験当時の記録。
+- **非公開・未検証**：評価セット・質問別の生出力・Qdrantデータは同梱しない。コードは照合時点の版であり、当時の全条件・数値を公開repo単独で再現できるとはしない。
+
+生成層を「未実施」とする§6・§7は当時の状態。後続比較は[公開用の事後集計](experiment-4-three-way.md#evidence)を参照。
+
+[READMEへ戻る](../README.md#評価から判断したこと)
+
+
 実行日: 2026-07-21
 対象計画: [retrieval-experiment-plan.md](retrieval-experiment-plan.md) §3–§9 / ランナー設計: [../experiments/condition_abc_plan.md](../experiments/condition_abc_plan.md)
 eval set: `data/eval/eval_set_merged.json`（66問, frozen） / k=5 / Base = structure collection, dense-only（`data/eval/scores_20260719.json` の `structure`）
