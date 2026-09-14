@@ -1,19 +1,5 @@
 # 評価記録: fixed vs structure chunking（2026-07）
 
-<a id="evidence"></a>
-## 判断から実物を確認する
-
-2026-09-14に追加した事後の案内です。以下の2026-07の報告値を再計算したものではありません。
-
-- **課題・結果**：hit-rate@5は両条件0.85でも、context precisionの平均は0.653 → 0.788。下の平均表と質問別表を参照。
-- **判断**：正解記事の取得と、取得文脈の質を分けて見る。構造分割を採用したが、20問の平均差だけで統計的な優位性は結論しない。
-- **評価コード**：[検索の質問別採点](https://github.com/t3-sketch/RAG_Music_Tutor/blob/64bc594157cec6cea2d0caeae655efb4ae737d6e/experiments/evaluation.py#L122)／[文脈・回答を別々に採点](https://github.com/t3-sketch/RAG_Music_Tutor/blob/64bc594157cec6cea2d0caeae655efb4ae737d6e/experiments/evaluation.py#L289)。現在の公開版の仕組みを示し、2026-07実行版の保証とはしない。
-- **設計資料**：[experiment-design.md](experiment-design.md)の§3B・§4。これは後日の設計ガイドであり、この比較の事前登録ではない。古い指標選定方針も含む。
-- **非公開・未検証**：分割・取り込みコード、コーパス、評価データと生出力。当時の数値の独立再計算、judgeの反復測定、平均差の有意性検証はこの案内の対象外。
-
-[READMEへ戻る](../README.md#評価から判断したこと)
-
-
 - fixed: `music_theory`（固定長800字chunking、RAGAS 2026-07-01実施）
 - structure: `music_theory_structure`（構造ベースchunking、RAGAS 2026-07-02実施）
 - n=20問（silver Q&Aセット）、judge: gemini-3.1-flash-lite、生成層: gemini-3.5-flash

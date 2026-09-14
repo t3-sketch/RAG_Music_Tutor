@@ -17,32 +17,12 @@ preload_from_hub:
   - BAAI/bge-m3 config.json,pytorch_model.bin,tokenizer.json,tokenizer_config.json,special_tokens_map.json,sentencepiece.bpe.model,colbert_linear.pt,sparse_linear.pt,sentence_bert_config.json,modules.json,config_sentence_transformers.json,1_Pooling/config.json
 ---
 
-# Music RAG — 音楽理論を、出典とともに学ぶ
+# music-rag
 
-「ドミナントモーションとは？」のような質問に、教材の関連箇所を検索して、日本語の解説と出典を返すアプリです。音源を添えた質問にも対応します。
-**個人開発：検索・生成パイプライン、UI、比較評価。** 検索で見つけられたか、回答が正しいか、評価指標が目的に合っているかを分けて検証しています。
+**[▶ デモを試す（Hugging Face Spaces）](https://huggingface.co/spaces/t3-sketch/RAG_Music_Tutor)**
 
-**[デモを試す](https://huggingface.co/spaces/t3-sketch/RAG_Music_Tutor)** · [評価結果](docs/evaluation.md) · [検索実験](docs/retrieval-experiment-results.md) · [セットアップ](#セットアップ)
-
-![音楽理論への質問に対し、解説と教材の出典を表示するデモ](docs/demo.png)
-
-*Japanese music-theory RAG with source attribution, optional audio analysis, and retrieval / answer evaluation.*
-
-## 評価から判断したこと
-
-| 課題 | 比較・結果 | 判断 | Evidence |
-| --- | --- | --- | --- |
-| 正解記事の有無だけで、検索した文脈の質を測れるか | 固定長 vs 構造分割（20問）。hit-rate@5はともに0.85、context precisionは0.653 → 0.788 | 構造分割を採用。文脈の評価も併用する。ただし統計的な優位性は未確認 | [結果・評価コード](docs/evaluation.md#evidence) |
-| hybrid検索とクエリ拡張は、必要な記事の取得に役立つか | 2×2比較（66問）。Base → Cのrecall@5は0.599 → 0.674、95%CIは[−0.010, +0.162] | 条件Cを採用したが、有意な改善とは主張しない。計画で指定した表記ゆれ層の評価は未完 | [条件・結果・実装](docs/retrieval-experiment-results.md#evidence) |
-| 検索の数値上昇が、回答品質にも現れるか | Base vs C（66問）。回答の正確さ・忠実性と文脈評価の4指標で、差の95%CIがすべて0をまたぐ | 検索評価だけで回答改善を結論せず、回答・文脈を別に評価する | [集計・評価の範囲](docs/experiment-4-three-way.md#evidence) |
-
-リンク先に結果・判断・コードの対応を示しています。**公開資料から確認できるのは報告値と実装の仕組みです。** コーパス・評価データ・生出力は非公開のため、公開repo単独で当時の数値を再計算できるとはしていません。コードリンクは2026-09-14に照合した版に固定し、当時の実行版との完全一致は未検証です。
-
-## 仕組み
-
-`質問 → クエリ拡張 → BGE-M3で検索用表現へ変換 → Qdrantのhybrid検索 → LLMで解説・出典を生成`
-
-Python / Streamlit / Qdrant / BGE-M3 / RAGASを使用。音源を添えた場合は、テンポ・キー・コードの解析結果を検索にも利用します。
+日本語の音楽理論教材コーパスを根拠に、コード進行・メロディ・リズムに関する質問へ日本語で解説する RAG システムです。
+ユーザーの質問（＋任意で楽曲の音響特徴）に対し、教材から関連箇所を検索し、それを根拠に LLM が解説を生成します。
 
 > **コーパスの扱い**:
 > 検索対象は SoundQuest（soundquest.jp）の記事コーパスです。著作権は原著者に帰属し、**利用許諾は打診中**。
@@ -56,9 +36,16 @@ Python / Streamlit / Qdrant / BGE-M3 / RAGASを使用。音源を添えた場合
 > オープンライセンス教材（Open Music Theory）版のコーパス（Qdrant `music_theory_open`）も併存しており、
 > `ENABLE_HYBRID=false` で切り替えられます。コードとアーキテクチャは両系統で共通です。
 
+---
 
-<details>
-<summary>詳細：デプロイ・開発背景・実験記録・設計</summary>
+## Demo
+
+> 質問を入力すると、教材から関連箇所を検索し、それを根拠に日本語の解説を生成します。
+> 解説の出典となった教材を併記します。
+
+![demo](docs/demo.png)
+
+---
 
 ## 公開デモ（デプロイ構成）
 
@@ -134,6 +121,18 @@ Python / Streamlit / Qdrant / BGE-M3 / RAGASを使用。音源を添えた場合
 - **検索・生成**: 質問 → クエリ拡張 → embed（dense+sparse）→ ハイブリッド検索（RRF）→ generate の E2E が動作します。音声を添えた場合はクエリ拡張の代わりに解析結果（調・主要コード）を検索クエリに追記します。Streamlit UI（`apps/streamlit_app.py`）から利用でき、公開デモは Hugging Face Spaces で稼働します。
 - **音響解析**: 音源のテンポ・キー・コード進行を解析し（BTC-ISMIR19、フォールバックはテンプレートマッチング）、解析結果を根拠に加えた解説を生成します。
 - **評価基盤**: recall@k / strict hit-rate / MRR / nDCG@k（LLM 不使用・常用）と RAGAS（LLM judge・節目のみ）の 2 層評価。66 問の評価セット（silver 20 + フォーラム由来 40 + 生成 6）で、chunking の A/B → 検索層・生成層の統合比較（NotebookLM を含む）まで実施済みです（下記）。
+
+---
+
+## 評価から判断したこと
+
+| 比較・観察 | 結果 | 判断・残る課題 |
+| --- | --- | --- |
+| 固定長分割 vs 見出しに沿った分割（20問） | hit-rate@5はともに0.85、context precisionは0.653 → 0.788 | 構造ベース分割を採用。正解記事の有無だけでなく、取得した文脈の質も評価する。平均差の統計的な優位性は未確認 |
+| dense検索 vs hybrid検索＋クエリ拡張（66問） | recall@5は0.599 → 0.674。ただし差の95%CIは0をまたぐ（p=0.099） | 条件Cを採用したが、数値上の上昇と統計的な優位性を区別する。多ソース質問は引き続き改善対象 |
+| 検索と回答を別々に評価（Base vs 条件C、66問） | 回答・文脈の4指標すべてで差の95%CIが0をまたぐ | 検索の数値上昇だけでは回答品質の改善を結論しない。回答長・参照回答・judgeの影響も点検し、評価設計を見直す |
+
+比較条件と詳細は、下の[評価と改善の記録](#評価と改善の記録)にまとめています。
 
 ---
 
@@ -406,6 +405,36 @@ audio.search_terms(analysis)         -> str   # 検索クエリ追記用
 
 ---
 
+## セットアップ
+
+前提: Docker, Python 3.11+, conda, uv
+（URL入力機能を使う場合は ffmpeg も必要: `brew install ffmpeg`。動かなくなったらまず `uv lock --upgrade-package yt-dlp` で yt-dlp を更新）
+
+```bash
+# 1) Python 環境（music_rag パッケージが editable install される）
+conda activate rag-music-theory
+uv sync
+
+# 2) Qdrant（Docker）を起動
+docker compose up -d
+
+# 3) .env を作成（雛形: .env.example）
+cp .env.example .env
+#   最低限:
+#   GEMINI_API_KEY     … 生成層とクエリ拡張（必須。LLM_PROVIDER の既定が gemini）
+#   任意:
+#   NVIDIA_API_KEY                               … LLM_PROVIDER=nvidia に切り替える場合
+#   OPENROUTER_API_KEY                           … RAGAS 評価を回す場合（judge 用）
+#   QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY      … Cloud へ collection を転送する場合
+```
+
+> コマンドはすべてリポジトリルートから実行してください（データパスは `./data` 基準です。
+> 別の場所から実行する場合は環境変数 `MUSIC_RAG_DATA_DIR` で上書きできます）。
+
+> **教材コーパスについて**: 著作権の都合により、コーパス本体（`data/`）はリポジトリに含めていません。
+> コードとアーキテクチャは閲覧できますが、動作には別途コーパスの取り込みが必要です。
+> 動作の様子は上記 Demo をご覧ください。
+
 ## 使い方
 
 ```bash
@@ -472,36 +501,3 @@ CHUNK_STRATEGY=fixed uv run streamlit run apps/streamlit_app.py   # 旧chunking�
   （Jonggwon Park, "A Bi-Directional Transformer for Musical Chord Recognition", ISMIR 2019）
   の一部をvendoringしています（MIT License, Copyright (c) 2019 Jonggwon Park）。
   ライセンス全文は [src/music_rag/model/LICENSE_BTC-ISMIR19](src/music_rag/model/LICENSE_BTC-ISMIR19) を参照してください。
-
-</details>
-
-## セットアップ
-
-前提: Docker, Python 3.11+, conda, uv
-（URL入力機能を使う場合は ffmpeg も必要: `brew install ffmpeg`。動かなくなったらまず `uv lock --upgrade-package yt-dlp` で yt-dlp を更新）
-
-```bash
-# 1) Python 環境（music_rag パッケージが editable install される）
-conda activate rag-music-theory
-uv sync
-
-# 2) Qdrant（Docker）を起動
-docker compose up -d
-
-# 3) .env を作成（雛形: .env.example）
-cp .env.example .env
-#   最低限:
-#   GEMINI_API_KEY     … 生成層とクエリ拡張（必須。LLM_PROVIDER の既定が gemini）
-#   任意:
-#   NVIDIA_API_KEY                               … LLM_PROVIDER=nvidia に切り替える場合
-#   OPENROUTER_API_KEY                           … RAGAS 評価を回す場合（judge 用）
-#   QDRANT_CLOUD_URL / QDRANT_CLOUD_API_KEY      … Cloud へ collection を転送する場合
-```
-
-> コマンドはすべてリポジトリルートから実行してください（データパスは `./data` 基準です。
-> 別の場所から実行する場合は環境変数 `MUSIC_RAG_DATA_DIR` で上書きできます）。
-
-> **教材コーパスについて**: 著作権の都合により、コーパス本体（`data/`）はリポジトリに含めていません。
-> コードとアーキテクチャは閲覧できますが、動作には別途コーパスの取り込みが必要です。
-> 動作の様子は上記 Demo をご覧ください。
-
