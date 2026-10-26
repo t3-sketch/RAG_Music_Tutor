@@ -19,9 +19,7 @@ preload_from_hub:
 
 # music-rag
 
-[![music-rag 発表スライドの表紙（クリックでPDFを開く）](docs/slides/cover.png)](docs/slides/music-rag-slides.pdf)
-
-**[発表スライド（PDF・7枚）](docs/slides/music-rag-slides.pdf)**：課題、構成、検索層の実験、回答品質までを7枚にまとめています。
+**[📊 7ページの簡易プレゼン用スライド（Google スライド）](https://docs.google.com/presentation/d/1Yp-88Gu7OZupyG64PdJ6jjhAGthX4s88__pGRqPdhos/edit?usp=sharing)**：課題、構成、検索層の実験、回答品質までを7枚にまとめています。
 
 Hugging Face Spacesでの公開は終了しました。以下のデモ画像・デプロイ構成は公開時の記録です。
 
